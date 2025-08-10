@@ -30,6 +30,8 @@ const ModernMainDashboard = () => {
   const [activeModule, setActiveModule] = useState('dashboard');
   const [searchTerm, setSearchTerm] = useState('');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [pendingModuleChange, setPendingModuleChange] = useState(null);
+  const [showUnsavedChangesModal, setShowUnsavedChangesModal] = useState(false);
 
   const modules = [
     { 
@@ -171,7 +173,28 @@ const ModernMainDashboard = () => {
               return (
                 <motion.button
                   key={module.id}
-                  onClick={() => setActiveModule(module.id)}
+                  onClick={() => {
+                    // Verificar si estamos saliendo del módulo de Settings con cambios sin guardar
+                    if (activeModule === 'settings' && module.id !== 'settings') {
+                      // Verificar si hay cambios sin guardar en Settings
+                      try {
+                        const savedConfig = localStorage.getItem('jarvi-global-config');
+                        const currentConfig = window.jarviCurrentConfig;
+                        
+                        if (currentConfig && savedConfig) {
+                          const hasChanges = JSON.stringify(JSON.parse(savedConfig)) !== JSON.stringify(currentConfig);
+                          if (hasChanges) {
+                            setPendingModuleChange(module.id);
+                            setShowUnsavedChangesModal(true);
+                            return;
+                          }
+                        }
+                      } catch (error) {
+                        console.error('Error checking for unsaved changes:', error);
+                      }
+                    }
+                    setActiveModule(module.id);
+                  }}
                   whileHover={{ x: sidebarCollapsed ? 0 : 4 }}
                   whileTap={{ scale: 0.98 }}
                   className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all relative group ${
@@ -243,6 +266,87 @@ const ModernMainDashboard = () => {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Modal de cambios sin guardar */}
+      <AnimatePresence>
+        {showUnsavedChangesModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setShowUnsavedChangesModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 bg-yellow-100 rounded-xl">
+                  <Bell className="w-6 h-6 text-yellow-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">
+                    Cambios sin guardar
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    Tienes cambios sin guardar en la configuración
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-gray-600 mb-6">
+                ¿Qué deseas hacer con los cambios realizados?
+              </p>
+
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => {
+                    // Disparar evento para que Settings guarde
+                    window.dispatchEvent(new CustomEvent('save-settings-and-continue'));
+                    setTimeout(() => {
+                      setActiveModule(pendingModuleChange);
+                      setShowUnsavedChangesModal(false);
+                      setPendingModuleChange(null);
+                    }, 500);
+                  }}
+                  className="w-full px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all font-medium flex items-center justify-center gap-2"
+                >
+                  <CheckSquare className="w-5 h-5" />
+                  Guardar y continuar
+                </button>
+
+                <button
+                  onClick={() => {
+                    // Descartar cambios y continuar
+                    window.dispatchEvent(new CustomEvent('discard-settings-changes'));
+                    setActiveModule(pendingModuleChange);
+                    setShowUnsavedChangesModal(false);
+                    setPendingModuleChange(null);
+                  }}
+                  className="w-full px-4 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all font-medium flex items-center justify-center gap-2"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                  Descartar cambios
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowUnsavedChangesModal(false);
+                    setPendingModuleChange(null);
+                  }}
+                  className="w-full px-4 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all font-medium"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
