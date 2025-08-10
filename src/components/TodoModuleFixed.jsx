@@ -112,43 +112,54 @@ const TodoModuleFixed = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
+    <div className="space-y-4">
+      {/* Header Horizontal Compacto */}
+      <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl px-4 py-3 text-white">
+        <div className="flex items-center justify-between">
+          {/* Sección Izquierda: Ícono + Título */}
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-blue-100 rounded-xl">
-              <CheckSquare className="w-6 h-6 text-blue-600" />
+            <div className="p-2 bg-white/20 backdrop-blur rounded-lg">
+              <CheckSquare className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">To-Do</h2>
-              <p className="text-sm text-gray-500">Organiza y completa tus tareas</p>
+              <h2 className="text-lg font-bold">To-Do</h2>
+              <p className="text-xs text-green-100">Organiza y completa tus tareas</p>
             </div>
           </div>
           
-          <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            Nueva Tarea
-          </button>
-        </div>
-
-        {/* Estadísticas rápidas */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-blue-50 rounded-lg p-3 text-center">
-            <div className="text-2xl font-bold text-blue-600">{todos.length}</div>
-            <div className="text-sm text-blue-700">Total</div>
-          </div>
-          <div className="bg-green-50 rounded-lg p-3 text-center">
-            <div className="text-2xl font-bold text-green-600">
-              {todos.filter(t => t.completed).length}
+          {/* Sección Central: Estadísticas */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Square className="w-4 h-4 text-green-200" />
+              <span className="text-sm font-medium">{todos.length} total</span>
             </div>
-            <div className="text-sm text-green-700">Completadas</div>
-          </div>
-          <div className="bg-orange-50 rounded-lg p-3 text-center">
-            <div className="text-2xl font-bold text-orange-600">
-              {todos.filter(t => !t.completed).length}
+            <div className="h-4 w-px bg-green-400/30"></div>
+            <div className="flex items-center gap-2">
+              <CheckSquare className="w-4 h-4 text-green-200" />
+              <span className="text-sm font-medium">{todos.filter(t => t.completed).length} completadas</span>
             </div>
-            <div className="text-sm text-orange-700">Pendientes</div>
+            <div className="h-4 w-px bg-green-400/30"></div>
+            <div className="flex items-center gap-2">
+              <Square className="w-4 h-4 text-green-200" />
+              <span className="text-sm font-medium">{todos.filter(t => !t.completed).length} pendientes</span>
+            </div>
+            {todos.filter(t => t.audioFile).length > 0 && (
+              <>
+                <div className="h-4 w-px bg-green-400/30"></div>
+                <div className="flex items-center gap-2">
+                  <Volume2 className="w-4 h-4 text-green-200" />
+                  <span className="text-sm font-medium">{todos.filter(t => t.audioFile).length} con audio</span>
+                </div>
+              </>
+            )}
+          </div>
+          
+          {/* Sección Derecha: Acciones */}
+          <div className="flex items-center gap-3">
+            <button className="px-3 py-1.5 bg-white/20 backdrop-blur text-white rounded-lg hover:bg-white/30 transition-colors flex items-center gap-2 text-sm font-medium">
+              <Plus className="w-4 h-4" />
+              Nueva
+            </button>
           </div>
         </div>
       </div>

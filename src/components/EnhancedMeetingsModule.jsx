@@ -48,6 +48,8 @@ const EnhancedMeetingsModule = () => {
   const [showEmailModal, setShowEmailModal] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterCategory, setFilterCategory] = useState('all');
+  const [quickFilter, setQuickFilter] = useState('all'); // all, today, week, month
   const [expandedTranscriptions, setExpandedTranscriptions] = useState(new Set());
   const [isConnected, setIsConnected] = useState(false);
   const [processingMeetings, setProcessingMeetings] = useState(new Set());
@@ -74,8 +76,26 @@ const EnhancedMeetingsModule = () => {
     title: '',
     date: '',
     participants: '',
-    tags: ''
+    tags: '',
+    category: 'personal',
+    status: 'pendiente'
   });
+
+  // Categorías de reuniones
+  const meetingCategories = {
+    dynamtek: { label: 'Dynamtek', color: 'blue' },
+    wbi: { label: 'WBI', color: 'purple' },
+    personal: { label: 'Personal', color: 'green' },
+    proyectos: { label: 'Proyectos', color: 'orange' },
+    ingles: { label: 'Clases de Inglés', color: 'pink' }
+  };
+
+  // Estados de reuniones
+  const meetingStatuses = {
+    pendiente: { label: 'Pendiente', color: 'yellow' },
+    procesada: { label: 'Procesada', color: 'green' },
+    archivada: { label: 'Archivada', color: 'gray' }
+  };
 
   const [emailTemplate, setEmailTemplate] = useState({
     to: '',
@@ -208,6 +228,8 @@ const EnhancedMeetingsModule = () => {
     formData.append('date', newMeeting.date || new Date().toISOString());
     formData.append('participants', newMeeting.participants);
     formData.append('tags', newMeeting.tags);
+    formData.append('category', newMeeting.category || 'personal');
+    formData.append('status', newMeeting.status || 'pendiente');
 
     setUploadingFile({
       name: file.name,
@@ -230,7 +252,7 @@ const EnhancedMeetingsModule = () => {
         console.log('✅ Archivo subido exitosamente:', response.data.meeting);
         setUploadingFile(null);
         setShowUploadForm(false);
-        setNewMeeting({ title: '', date: '', participants: '', tags: '' });
+        setNewMeeting({ title: '', date: '', participants: '', tags: '', category: 'personal', status: 'pendiente' });
         
         // La transcripción se iniciará automáticamente en el servidor
       }
@@ -430,6 +452,42 @@ const EnhancedMeetingsModule = () => {
     }
   };
 
+  const updateMeetingStatus = async (meetingId, newStatus) => {
+    try {
+      const response = await axios.patch(`${API_ENDPOINTS.MEETINGS}/api/meetings/${meetingId}`, {
+        status: newStatus
+      });
+      
+      if (response.data.success) {
+        setMeetings(prev => prev.map(m => 
+          m.id === meetingId ? { ...m, status: newStatus } : m
+        ));
+        console.log('✅ Estado actualizado a:', newStatus);
+      }
+    } catch (error) {
+      console.error('Error actualizando estado:', error);
+      alert('Error al actualizar estado: ' + error.message);
+    }
+  };
+
+  const updateMeetingCategory = async (meetingId, newCategory) => {
+    try {
+      const response = await axios.patch(`${API_ENDPOINTS.MEETINGS}/api/meetings/${meetingId}`, {
+        category: newCategory
+      });
+      
+      if (response.data.success) {
+        setMeetings(prev => prev.map(m => 
+          m.id === meetingId ? { ...m, category: newCategory } : m
+        ));
+        console.log('✅ Categoría actualizada a:', newCategory);
+      }
+    } catch (error) {
+      console.error('Error actualizando categoría:', error);
+      alert('Error al actualizar categoría: ' + error.message);
+    }
+  };
+
   const playAudio = (meeting) => {
     if (audioRef.current) {
       if (currentlyPlaying === meeting.id) {
@@ -527,7 +585,8 @@ Generado automáticamente por JARVI
     const matchesSearch = meeting.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          meeting.participants?.some(p => p.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = filterStatus === 'all' || meeting.status === filterStatus;
-    return matchesSearch && matchesStatus;
+    const matchesCategory = filterCategory === 'all' || meeting.category === filterCategory;
+    return matchesSearch && matchesStatus && matchesCategory;
   });
 
   const totalMeetings = meetings.length;
@@ -535,30 +594,62 @@ Generado automáticamente por JARVI
   const processingCount = processingMeetings.size;
 
   return (
-    <div className="space-y-6">
-      {/* Header con estadísticas de IA */}
-      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-6 text-white">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-white/20 backdrop-blur rounded-xl">
-              <Users className="w-8 h-8" />
+    <div className="space-y-4">
+      {/* Header Horizontal Delgado */}
+      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl px-4 py-3 text-white">
+        <div className="flex items-center justify-between">
+          {/* Sección Izquierda: Ícono + Título */}
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-white/20 backdrop-blur rounded-lg">
+              <Users className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold">Reuniones Inteligentes</h2>
-              <p className="text-purple-100">Transcribe y genera minutas con IA para archivos largos</p>
+              <h2 className="text-lg font-bold">Reuniones Inteligentes</h2>
+              <p className="text-xs text-purple-100">Transcribe y genera minutas con IA</p>
             </div>
           </div>
           
+          {/* Sección Central: Estadísticas Compactas */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Brain className="w-4 h-4 text-purple-200" />
+              <span className="text-sm font-medium">{totalMeetings} reuniones</span>
+            </div>
+            <div className="h-4 w-px bg-purple-400/30"></div>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-purple-200" />
+              <span className="text-sm font-medium">{completedMeetings} procesadas</span>
+            </div>
+            <div className="h-4 w-px bg-purple-400/30"></div>
+            <div className="flex items-center gap-2">
+              <Hash className="w-4 h-4 text-purple-200" />
+              <span className="text-sm font-medium">{aiStats.totalTokens.toLocaleString()} tokens</span>
+            </div>
+            <div className="h-4 w-px bg-purple-400/30"></div>
+            <div className="flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-purple-200" />
+              <span className="text-sm font-medium">${aiStats.totalCost.toFixed(2)}</span>
+            </div>
+            {processingCount > 0 && (
+              <>
+                <div className="h-4 w-px bg-purple-400/30"></div>
+                <div className="flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-purple-200 animate-pulse" />
+                  <span className="text-sm font-medium">{processingCount} procesando</span>
+                </div>
+              </>
+            )}
+          </div>
+          
+          {/* Sección Derecha: Estado y Acciones */}
           <div className="flex items-center gap-3">
-            <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${
+            <div className={`flex items-center gap-2 px-2 py-1 rounded-full text-xs ${
               isConnected ? 'bg-green-500/20' : 'bg-red-500/20'
             }`}>
-              <div className={`w-2 h-2 rounded-full ${
+              <div className={`w-1.5 h-1.5 rounded-full ${
                 isConnected ? 'bg-green-400' : 'bg-red-400'
               } animate-pulse`} />
-              <span className="text-sm">
-                {isConnected ? 'Conectado' : 'Desconectado'}
-              </span>
+              <span>{isConnected ? 'Conectado' : 'Desconectado'}</span>
             </div>
             
             <button
@@ -566,70 +657,11 @@ Generado automáticamente por JARVI
                 console.log('Botón clickeado - Abriendo formulario');
                 setShowUploadForm(!showUploadForm);
               }}
-              className="px-4 py-2 bg-white/20 backdrop-blur text-white rounded-lg hover:bg-white/30 transition-colors flex items-center gap-2"
+              className="px-3 py-1.5 bg-white/20 backdrop-blur text-white rounded-lg hover:bg-white/30 transition-colors flex items-center gap-2 text-sm font-medium"
             >
               <Upload className="w-4 h-4" />
-              Subir Audio (hasta 500MB)
+              Subir Audio
             </button>
-            
-            {/* Botón alternativo de prueba */}
-            <button
-              onClick={() => {
-                console.log('Abriendo selector de archivos directamente');
-                if (fileInputRef.current) {
-                  fileInputRef.current.click();
-                } else {
-                  console.error('fileInputRef no está disponible');
-                }
-              }}
-              className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors flex items-center gap-2"
-            >
-              <FileAudio className="w-4 h-4" />
-              Subir Directo
-            </button>
-          </div>
-        </div>
-
-        {/* Estadísticas de IA */}
-        <div className="grid grid-cols-5 gap-4">
-          <div className="bg-white/10 backdrop-blur rounded-xl p-3">
-            <div className="flex items-center justify-between mb-1">
-              <Brain className="w-5 h-5 text-purple-200" />
-              <span className="text-xl font-bold">{totalMeetings}</span>
-            </div>
-            <p className="text-xs text-purple-100">Total Reuniones</p>
-          </div>
-          
-          <div className="bg-white/10 backdrop-blur rounded-xl p-3">
-            <div className="flex items-center justify-between mb-1">
-              <CheckCircle className="w-5 h-5 text-purple-200" />
-              <span className="text-xl font-bold">{completedMeetings}</span>
-            </div>
-            <p className="text-xs text-purple-100">Procesadas</p>
-          </div>
-          
-          <div className="bg-white/10 backdrop-blur rounded-xl p-3">
-            <div className="flex items-center justify-between mb-1">
-              <Hash className="w-5 h-5 text-purple-200" />
-              <span className="text-xl font-bold">{aiStats.totalTokens.toLocaleString()}</span>
-            </div>
-            <p className="text-xs text-purple-100">Tokens Total</p>
-          </div>
-          
-          <div className="bg-white/10 backdrop-blur rounded-xl p-3">
-            <div className="flex items-center justify-between mb-1">
-              <DollarSign className="w-5 h-5 text-purple-200" />
-              <span className="text-xl font-bold">${aiStats.totalCost.toFixed(4)}</span>
-            </div>
-            <p className="text-xs text-purple-100">Costo Total</p>
-          </div>
-          
-          <div className="bg-white/10 backdrop-blur rounded-xl p-3">
-            <div className="flex items-center justify-between mb-1">
-              <Activity className="w-5 h-5 text-purple-200" />
-              <span className="text-xl font-bold">{processingCount}</span>
-            </div>
-            <p className="text-xs text-purple-100">En Proceso</p>
           </div>
         </div>
       </div>
@@ -652,7 +684,7 @@ Generado automáticamente por JARVI
                 value={newMeeting.title}
                 onChange={(e) => setNewMeeting({...newMeeting, title: e.target.value})}
                 placeholder="Ej: Reunión de Planning Q1 2025"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
             </div>
             
@@ -662,7 +694,7 @@ Generado automáticamente por JARVI
                 type="datetime-local"
                 value={newMeeting.date}
                 onChange={(e) => setNewMeeting({...newMeeting, date: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
             </div>
             
@@ -673,7 +705,7 @@ Generado automáticamente por JARVI
                 value={newMeeting.participants}
                 onChange={(e) => setNewMeeting({...newMeeting, participants: e.target.value})}
                 placeholder="Juan Pérez, María García, Carlos López"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
             </div>
             
@@ -684,8 +716,38 @@ Generado automáticamente por JARVI
                 value={newMeeting.tags}
                 onChange={(e) => setNewMeeting({...newMeeting, tags: e.target.value})}
                 placeholder="sprint, planning, Q1"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+              <select
+                value={newMeeting.category}
+                onChange={(e) => setNewMeeting({...newMeeting, category: e.target.value})}
+                className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                {Object.entries(meetingCategories).map(([key, cat]) => (
+                  <option key={key} value={key}>
+                    {cat.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+              <select
+                value={newMeeting.status}
+                onChange={(e) => setNewMeeting({...newMeeting, status: e.target.value})}
+                className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                {Object.entries(meetingStatuses).map(([key, status]) => (
+                  <option key={key} value={key}>
+                    {status.label}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -745,8 +807,135 @@ Generado automáticamente por JARVI
         </motion.div>
       )}
 
+      {/* Tabs de acceso rápido */}
+      <div className="bg-white rounded-xl p-2 shadow-sm mb-4">
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              setFilterStatus('all');
+              setFilterCategory('all');
+              setSearchTerm('');
+            }}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              filterStatus === 'all' && filterCategory === 'all' && !searchTerm
+                ? 'bg-purple-100 text-purple-700'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            Todas
+          </button>
+          
+          <button
+            onClick={() => {
+              setFilterStatus('pendiente');
+              setFilterCategory('all');
+            }}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              filterStatus === 'pendiente'
+                ? 'bg-yellow-100 text-yellow-700'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            Pendientes ({meetings.filter(m => m.status === 'pendiente').length})
+          </button>
+          
+          <button
+            onClick={() => {
+              setFilterStatus('procesada');
+              setFilterCategory('all');
+            }}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              filterStatus === 'procesada'
+                ? 'bg-green-100 text-green-700'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            Procesadas ({meetings.filter(m => m.status === 'procesada').length})
+          </button>
+          
+          <div className="border-l border-gray-300 mx-2"></div>
+          
+          <button
+            onClick={() => {
+              setFilterCategory('dynamtek');
+              setFilterStatus('all');
+            }}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              filterCategory === 'dynamtek'
+                ? 'bg-blue-100 text-blue-700'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            Dynamtek ({meetings.filter(m => m.category === 'dynamtek').length})
+          </button>
+          
+          <button
+            onClick={() => {
+              setFilterCategory('wbi');
+              setFilterStatus('all');
+            }}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              filterCategory === 'wbi'
+                ? 'bg-purple-100 text-purple-700'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            WBI ({meetings.filter(m => m.category === 'wbi').length})
+          </button>
+          
+          <button
+            onClick={() => {
+              setFilterCategory('ingles');
+              setFilterStatus('all');
+            }}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              filterCategory === 'ingles'
+                ? 'bg-pink-100 text-pink-700'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            Inglés ({meetings.filter(m => m.category === 'ingles').length})
+          </button>
+        </div>
+      </div>
+
       {/* Filtros */}
       <div className="bg-white rounded-xl p-4 shadow-sm">
+        {/* Indicadores de filtros activos */}
+        {(searchTerm || filterCategory !== 'all' || filterStatus !== 'all') && (
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">Filtros activos:</span>
+              {searchTerm && (
+                <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">
+                  Búsqueda: "{searchTerm}"
+                </span>
+              )}
+              {filterCategory !== 'all' && (
+                <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
+                  {meetingCategories[filterCategory]?.label}
+                </span>
+              )}
+              {filterStatus !== 'all' && (
+                <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">
+                  {meetingStatuses[filterStatus]?.label}
+                </span>
+              )}
+            </div>
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setFilterCategory('all');
+                setFilterStatus('all');
+              }}
+              className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1"
+            >
+              <X className="w-3 h-3" />
+              Limpiar filtros
+            </button>
+          </div>
+        )}
+        
         <div className="flex gap-4">
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
@@ -755,21 +944,73 @@ Generado automáticamente por JARVI
               placeholder="Buscar reuniones..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full pl-10 pr-4 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
           </div>
           
+          {/* Filtro de categoría */}
+          <select
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+            className="px-4 py-2 text-gray-900 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+          >
+            <option value="all">Todas las categorías</option>
+            {Object.entries(meetingCategories).map(([key, cat]) => (
+              <option key={key} value={key}>
+                {cat.label}
+              </option>
+            ))}
+          </select>
+          
+          {/* Filtro de estado */}
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="px-4 py-2 text-gray-900 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
           >
             <option value="all">Todos los estados</option>
-            <option value="completed">Completadas</option>
-            <option value="transcribing">En proceso</option>
-            <option value="uploaded">Subidas</option>
-            <option value="error">Con errores</option>
+            {Object.entries(meetingStatuses).map(([key, status]) => (
+              <option key={key} value={key}>
+                {status.label}
+              </option>
+            ))}
           </select>
+        </div>
+      </div>
+
+      {/* Contador de resultados y estadísticas */}
+      <div className="bg-white rounded-xl p-4 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <span className="text-lg font-semibold text-gray-900">
+              {filteredMeetings.length} {filteredMeetings.length === 1 ? 'reunión' : 'reuniones'}
+            </span>
+            <span className="text-sm text-gray-500">
+              de {meetings.length} totales
+            </span>
+          </div>
+          
+          {/* Estadísticas rápidas */}
+          <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span className="text-gray-600">
+                {meetings.filter(m => m.status === 'procesada').length} procesadas
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+              <span className="text-gray-600">
+                {meetings.filter(m => m.status === 'pendiente').length} pendientes
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+              <span className="text-gray-600">
+                {meetings.filter(m => m.status === 'archivada').length} archivadas
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -789,17 +1030,32 @@ Generado automáticamente por JARVI
                   <div className="flex items-center gap-3 mb-2">
                     <h3 className="text-lg font-semibold text-gray-900">{meeting.title}</h3>
                     
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      meeting.status === 'uploaded' ? 'bg-blue-100 text-blue-700' :
-                      meeting.status === 'transcribing' ? 'bg-yellow-100 text-yellow-700' :
-                      meeting.status === 'completed' ? 'bg-green-100 text-green-700' :
-                      'bg-red-100 text-red-700'
-                    }`}>
-                      {processingMeetings.has(meeting.id) && <Loader2 className="w-3 h-3 animate-spin inline mr-1" />}
-                      {meeting.status === 'transcribing' ? 'Transcribiendo' :
-                       meeting.status === 'completed' ? 'Completado' :
-                       meeting.status === 'uploaded' ? 'Subido' : 'Error'}
-                    </span>
+                    {/* Badge de categoría */}
+                    {meeting.category && meetingCategories[meeting.category] && (
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium bg-${meetingCategories[meeting.category].color}-100 text-${meetingCategories[meeting.category].color}-700`}>
+                        {meetingCategories[meeting.category].label}
+                      </span>
+                    )}
+                    
+                    {/* Badge de estado */}
+                    {meeting.status && meetingStatuses[meeting.status] ? (
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium bg-${meetingStatuses[meeting.status].color}-100 text-${meetingStatuses[meeting.status].color}-700`}>
+                        {processingMeetings.has(meeting.id) && <Loader2 className="w-3 h-3 animate-spin inline mr-1" />}
+                        {meetingStatuses[meeting.status].label}
+                      </span>
+                    ) : (
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        meeting.status === 'uploaded' ? 'bg-blue-100 text-blue-700' :
+                        meeting.status === 'transcribing' ? 'bg-yellow-100 text-yellow-700' :
+                        meeting.status === 'completed' ? 'bg-green-100 text-green-700' :
+                        'bg-red-100 text-red-700'
+                      }`}>
+                        {processingMeetings.has(meeting.id) && <Loader2 className="w-3 h-3 animate-spin inline mr-1" />}
+                        {meeting.status === 'transcribing' ? 'Transcribiendo' :
+                         meeting.status === 'completed' ? 'Completado' :
+                         meeting.status === 'uploaded' ? 'Subido' : 'Error'}
+                      </span>
+                    )}
 
                     {meeting.fileSize && (
                       <span className="text-sm text-gray-500">
@@ -997,6 +1253,66 @@ Generado automáticamente por JARVI
                     </button>
                   )}
                   
+                  {/* Selector de Estado - Diseño mejorado */}
+                  <div className="relative group">
+                    <select
+                      value={meeting.status || 'pendiente'}
+                      onChange={(e) => updateMeetingStatus(meeting.id, e.target.value)}
+                      className={`
+                        appearance-none px-3 py-1.5 pr-8 text-xs font-medium rounded-lg
+                        border transition-all duration-200 cursor-pointer
+                        ${meeting.status === 'pendiente' 
+                          ? 'bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100' 
+                          : meeting.status === 'procesada'
+                          ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100'
+                          : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
+                        }
+                        focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1
+                      `}
+                      title="Cambiar estado"
+                    >
+                      {Object.entries(meetingStatuses).map(([key, status]) => (
+                        <option key={key} value={key}>
+                          {status.label}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-3 h-3 pointer-events-none text-gray-500" />
+                  </div>
+                  
+                  {/* Selector de Categoría - Diseño mejorado */}
+                  <div className="relative group">
+                    <select
+                      value={meeting.category || 'personal'}
+                      onChange={(e) => updateMeetingCategory(meeting.id, e.target.value)}
+                      className={`
+                        appearance-none px-3 py-1.5 pr-8 text-xs font-medium rounded-lg
+                        border transition-all duration-200 cursor-pointer
+                        ${meeting.category === 'dynamtek' 
+                          ? 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100' 
+                          : meeting.category === 'wbi'
+                          ? 'bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100'
+                          : meeting.category === 'personal'
+                          ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100'
+                          : meeting.category === 'proyectos'
+                          ? 'bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100'
+                          : meeting.category === 'ingles'
+                          ? 'bg-pink-50 border-pink-200 text-pink-700 hover:bg-pink-100'
+                          : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
+                        }
+                        focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1
+                      `}
+                      title="Cambiar categoría"
+                    >
+                      {Object.entries(meetingCategories).map(([key, cat]) => (
+                        <option key={key} value={key}>
+                          {cat.label}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-3 h-3 pointer-events-none text-gray-500" />
+                  </div>
+                  
                   {/* Botón para descargar transcripción */}
                   {meeting.transcription && (
                     <button
@@ -1077,11 +1393,27 @@ Generado automáticamente por JARVI
         {filteredMeetings.length === 0 && (
           <div className="text-center py-12 bg-white rounded-xl">
             <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">
-              {searchTerm || filterStatus !== 'all' 
-                ? 'No hay reuniones que coincidan con los filtros'
-                : 'No tienes reuniones aún. ¡Sube tu primera grabación larga!'}
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">
+              No se encontraron reuniones
+            </h3>
+            <p className="text-gray-500 mb-4">
+              {searchTerm && `No hay reuniones que contengan "${searchTerm}"`}
+              {!searchTerm && filterCategory !== 'all' && `No hay reuniones de ${meetingCategories[filterCategory]?.label}`}
+              {!searchTerm && filterCategory === 'all' && filterStatus !== 'all' && `No hay reuniones ${meetingStatuses[filterStatus]?.label.toLowerCase()}`}
+              {!searchTerm && filterCategory === 'all' && filterStatus === 'all' && 'No tienes reuniones aún'}
             </p>
+            {(searchTerm || filterStatus !== 'all' || filterCategory !== 'all') && (
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setFilterCategory('all');
+                  setFilterStatus('all');
+                }}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                Limpiar filtros
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -2021,7 +2353,7 @@ Generado automáticamente por JARVI
                   type="email"
                   value={emailTemplate.to}
                   onChange={(e) => setEmailTemplate({...emailTemplate, to: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                   placeholder="destinatario@email.com"
                 />
               </div>
@@ -2032,7 +2364,7 @@ Generado automáticamente por JARVI
                   type="email"
                   value={emailTemplate.cc}
                   onChange={(e) => setEmailTemplate({...emailTemplate, cc: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                   placeholder="copia@email.com"
                 />
               </div>
@@ -2043,7 +2375,7 @@ Generado automáticamente por JARVI
                   type="text"
                   value={emailTemplate.subject}
                   onChange={(e) => setEmailTemplate({...emailTemplate, subject: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
 
@@ -2053,7 +2385,7 @@ Generado automáticamente por JARVI
                   value={emailTemplate.body}
                   onChange={(e) => setEmailTemplate({...emailTemplate, body: e.target.value})}
                   rows={12}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
             </div>

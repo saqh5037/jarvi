@@ -16,6 +16,9 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// Configuración de API Keys
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyAGlwn2nDECzKnqRYqHo4hVUlNqGMsp1mw';
+
 const app = express();
 const server = createServer(app);
 
@@ -107,7 +110,7 @@ app.post('/api/meetings/upload', upload.single('audio'), async (req, res) => {
       });
     }
     
-    const { title, date, participants, tags } = req.body;
+    const { title, date, participants, tags, category, status } = req.body;
     
     const meeting = {
       id: Date.now(),
@@ -115,11 +118,12 @@ app.post('/api/meetings/upload', upload.single('audio'), async (req, res) => {
       date: date || new Date().toISOString(),
       participants: participants ? participants.split(',').map(p => p.trim()) : [],
       tags: tags ? tags.split(',').map(t => t.trim()) : [],
+      category: category || 'personal',
+      status: status || 'pendiente',
       audioFile: req.file.filename,
       audioPath: `/meetings/audio/${req.file.filename}`,
       fileSize: req.file.size,
       duration: 0, // Se calculará después
-      status: 'uploaded',
       transcription: null,
       summary: null,
       keyPoints: [],
@@ -577,7 +581,7 @@ Formato el resultado de manera clara y profesional.`;
     meeting.advancedAnalysis = advancedAnalysis;
     meeting.contextUsed = context;
     meeting.retranscribedAt = new Date().toISOString();
-    meeting.status = 'completed';
+    meeting.status = 'procesada';
     
     // Guardar cambios
     fs.writeFileSync(meetingsFile, JSON.stringify(meetings, null, 2));
@@ -681,7 +685,7 @@ async function processTranscription(meetingId) {
     const transcription = await transcriptionService.transcribeAudio(audioPath, 'es');
     
     meeting.transcription = transcription;
-    meeting.status = 'completed';
+    meeting.status = 'procesada';
     
     // Calcular tokens y costo
     meeting.tokens = Math.ceil(transcription.length / 4);
@@ -692,7 +696,7 @@ async function processTranscription(meetingId) {
     io.emit('meeting-transcribed', {
       id: meetingId,
       transcription,
-      status: 'completed'
+      status: 'procesada'
     });
     
     console.log(`✅ Reunión transcrita: ${meeting.title}`);
@@ -2007,6 +2011,50 @@ Fecha de generación: ${new Date().toLocaleString()}
 
   return minutes;
 }
+
+// Actualizar reunión (estado y categoría)
+app.patch('/api/meetings/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, category } = req.body;
+    
+    const meetingsFile = path.join(meetingsDataDir, 'meetings.json');
+    const meetings = JSON.parse(fs.readFileSync(meetingsFile, 'utf8'));
+    
+    const meetingIndex = meetings.findIndex(m => m.id == id);
+    if (meetingIndex === -1) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Reunión no encontrada' 
+      });
+    }
+    
+    // Actualizar los campos que vienen en el request
+    if (status !== undefined) {
+      meetings[meetingIndex].status = status;
+    }
+    if (category !== undefined) {
+      meetings[meetingIndex].category = category;
+    }
+    
+    // Guardar cambios
+    fs.writeFileSync(meetingsFile, JSON.stringify(meetings, null, 2));
+    
+    // Emitir evento de actualización
+    io.emit('meeting-updated', meetings[meetingIndex]);
+    
+    res.json({ 
+      success: true, 
+      meeting: meetings[meetingIndex] 
+    });
+  } catch (error) {
+    console.error('Error actualizando reunión:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
 
 // ==================== INICIAR SERVIDOR ====================
 

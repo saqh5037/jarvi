@@ -163,31 +163,66 @@ const RemindersModule = () => {
     return 'Hoy';
   };
 
+  // Estadísticas
+  const totalReminders = reminders.length;
+  const completedReminders = reminders.filter(r => r.completed).length;
+  const pendingReminders = reminders.filter(r => !r.completed).length;
+  const urgentReminders = reminders.filter(r => !r.completed && r.priority === 'high').length;
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
+    <div className="space-y-4">
+      {/* Header Horizontal Compacto */}
+      <div className="bg-gradient-to-r from-orange-500 to-red-600 rounded-xl px-4 py-3 text-white">
+        <div className="flex items-center justify-between">
+          {/* Sección Izquierda: Ícono + Título */}
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-orange-100 rounded-xl">
-              <Bell className="w-6 h-6 text-orange-600" />
+            <div className="p-2 bg-white/20 backdrop-blur rounded-lg">
+              <Bell className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">Recordatorios</h2>
-              <p className="text-sm text-gray-500">Gestiona tus recordatorios y citas</p>
+              <h2 className="text-lg font-bold">Recordatorios</h2>
+              <p className="text-xs text-orange-100">Gestiona tus recordatorios y citas</p>
             </div>
           </div>
           
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Nuevo Recordatorio
-          </button>
+          {/* Sección Central: Estadísticas */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-orange-200" />
+              <span className="text-sm font-medium">{totalReminders} total</span>
+            </div>
+            <div className="h-4 w-px bg-orange-400/30"></div>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-orange-200" />
+              <span className="text-sm font-medium">{completedReminders} completados</span>
+            </div>
+            <div className="h-4 w-px bg-orange-400/30"></div>
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-orange-200" />
+              <span className="text-sm font-medium">{pendingReminders} pendientes</span>
+            </div>
+            <div className="h-4 w-px bg-orange-400/30"></div>
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-orange-200" />
+              <span className="text-sm font-medium">{urgentReminders} urgentes</span>
+            </div>
+          </div>
+          
+          {/* Sección Derecha: Acciones */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="px-3 py-1.5 bg-white/20 backdrop-blur text-white rounded-lg hover:bg-white/30 transition-colors flex items-center gap-2 text-sm font-medium"
+            >
+              <Plus className="w-4 h-4" />
+              Nuevo
+            </button>
+          </div>
         </div>
-
-        {/* Filtros */}
+      </div>
+      
+      {/* Filtros */}
+      <div className="bg-white rounded-xl p-4 shadow-sm">
         <div className="flex gap-4">
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
@@ -196,14 +231,14 @@ const RemindersModule = () => {
               placeholder="Buscar recordatorios..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full pl-10 pr-4 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
             />
           </div>
           
           <select
             value={filterPriority}
             onChange={(e) => setFilterPriority(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+            className="px-4 py-2 text-gray-900 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
           >
             <option value="all">Todas las prioridades</option>
             <option value="high">Alta prioridad</option>
@@ -231,7 +266,7 @@ const RemindersModule = () => {
                 value={newReminder.title}
                 onChange={(e) => setNewReminder({...newReminder, title: e.target.value})}
                 placeholder="Título del recordatorio"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
             </div>
             
@@ -242,7 +277,7 @@ const RemindersModule = () => {
                 onChange={(e) => setNewReminder({...newReminder, description: e.target.value})}
                 placeholder="Descripción opcional"
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
             </div>
             
@@ -252,7 +287,7 @@ const RemindersModule = () => {
                 type="datetime-local"
                 value={newReminder.datetime}
                 onChange={(e) => setNewReminder({...newReminder, datetime: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
             </div>
             
@@ -261,7 +296,7 @@ const RemindersModule = () => {
               <select
                 value={newReminder.priority}
                 onChange={(e) => setNewReminder({...newReminder, priority: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
               >
                 <option value="low">Baja</option>
                 <option value="medium">Media</option>
@@ -274,7 +309,7 @@ const RemindersModule = () => {
               <select
                 value={newReminder.category}
                 onChange={(e) => setNewReminder({...newReminder, category: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
               >
                 {Object.entries(categories).map(([key, category]) => (
                   <option key={key} value={key}>{category.label}</option>
