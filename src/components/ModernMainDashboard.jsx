@@ -212,16 +212,7 @@ const ModernMainDashboard = () => {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <button className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  Filtrar
-                </button>
-                <button className="px-4 py-2 text-white bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all flex items-center gap-2 shadow-lg">
-                  <Plus className="w-4 h-4" />
-                  Nuevo
-                </button>
-              </div>
+              {/* Acciones del módulo se manejan dentro de cada componente */}
             </div>
 
             {/* Contenido del módulo */}

@@ -452,6 +452,42 @@ const EnhancedMeetingsModule = () => {
     }
   };
 
+  const updateMeetingStatus = async (meetingId, newStatus) => {
+    try {
+      const response = await axios.patch(`${API_ENDPOINTS.MEETINGS}/api/meetings/${meetingId}`, {
+        status: newStatus
+      });
+      
+      if (response.data.success) {
+        setMeetings(prev => prev.map(m => 
+          m.id === meetingId ? { ...m, status: newStatus } : m
+        ));
+        console.log('✅ Estado actualizado a:', newStatus);
+      }
+    } catch (error) {
+      console.error('Error actualizando estado:', error);
+      alert('Error al actualizar estado: ' + error.message);
+    }
+  };
+
+  const updateMeetingCategory = async (meetingId, newCategory) => {
+    try {
+      const response = await axios.patch(`${API_ENDPOINTS.MEETINGS}/api/meetings/${meetingId}`, {
+        category: newCategory
+      });
+      
+      if (response.data.success) {
+        setMeetings(prev => prev.map(m => 
+          m.id === meetingId ? { ...m, category: newCategory } : m
+        ));
+        console.log('✅ Categoría actualizada a:', newCategory);
+      }
+    } catch (error) {
+      console.error('Error actualizando categoría:', error);
+      alert('Error al actualizar categoría: ' + error.message);
+    }
+  };
+
   const playAudio = (meeting) => {
     if (audioRef.current) {
       if (currentlyPlaying === meeting.id) {
@@ -593,22 +629,6 @@ Generado automáticamente por JARVI
             >
               <Upload className="w-4 h-4" />
               Subir Audio (hasta 500MB)
-            </button>
-            
-            {/* Botón alternativo de prueba */}
-            <button
-              onClick={() => {
-                console.log('Abriendo selector de archivos directamente');
-                if (fileInputRef.current) {
-                  fileInputRef.current.click();
-                } else {
-                  console.error('fileInputRef no está disponible');
-                }
-              }}
-              className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors flex items-center gap-2"
-            >
-              <FileAudio className="w-4 h-4" />
-              Subir Directo
             </button>
           </div>
         </div>
@@ -1243,6 +1263,34 @@ Generado automáticamente por JARVI
                       <FileText className="w-4 h-4" />
                     </button>
                   )}
+                  
+                  {/* Selector de Estado */}
+                  <select
+                    value={meeting.status || 'pendiente'}
+                    onChange={(e) => updateMeetingStatus(meeting.id, e.target.value)}
+                    className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    title="Cambiar estado"
+                  >
+                    {Object.entries(meetingStatuses).map(([key, status]) => (
+                      <option key={key} value={key}>
+                        {status.icon} {status.label}
+                      </option>
+                    ))}
+                  </select>
+                  
+                  {/* Selector de Categoría */}
+                  <select
+                    value={meeting.category || 'personal'}
+                    onChange={(e) => updateMeetingCategory(meeting.id, e.target.value)}
+                    className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    title="Cambiar categoría"
+                  >
+                    {Object.entries(meetingCategories).map(([key, cat]) => (
+                      <option key={key} value={key}>
+                        {cat.icon} {cat.label}
+                      </option>
+                    ))}
+                  </select>
                   
                   {/* Botón para descargar transcripción */}
                   {meeting.transcription && (

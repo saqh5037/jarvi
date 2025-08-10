@@ -2012,6 +2012,50 @@ Fecha de generación: ${new Date().toLocaleString()}
   return minutes;
 }
 
+// Actualizar reunión (estado y categoría)
+app.patch('/api/meetings/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, category } = req.body;
+    
+    const meetingsFile = path.join(meetingsDataDir, 'meetings.json');
+    const meetings = JSON.parse(fs.readFileSync(meetingsFile, 'utf8'));
+    
+    const meetingIndex = meetings.findIndex(m => m.id == id);
+    if (meetingIndex === -1) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Reunión no encontrada' 
+      });
+    }
+    
+    // Actualizar los campos que vienen en el request
+    if (status !== undefined) {
+      meetings[meetingIndex].status = status;
+    }
+    if (category !== undefined) {
+      meetings[meetingIndex].category = category;
+    }
+    
+    // Guardar cambios
+    fs.writeFileSync(meetingsFile, JSON.stringify(meetings, null, 2));
+    
+    // Emitir evento de actualización
+    io.emit('meeting-updated', meetings[meetingIndex]);
+    
+    res.json({ 
+      success: true, 
+      meeting: meetings[meetingIndex] 
+    });
+  } catch (error) {
+    console.error('Error actualizando reunión:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
 // ==================== INICIAR SERVIDOR ====================
 
 const PORT = 3002;
