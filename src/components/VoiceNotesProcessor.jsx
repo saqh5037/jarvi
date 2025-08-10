@@ -22,8 +22,9 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import io from 'socket.io-client';
+import { API_ENDPOINTS, SOCKET_URLS } from '../config/api';
 
-const VOICE_SERVER = 'http://localhost:3004';
+const VOICE_SERVER = API_ENDPOINTS.VOICE_NOTES_SERVER;
 
 const VoiceNotesProcessor = ({ voiceNote }) => {
   const [prompts, setPrompts] = useState([]);
@@ -55,7 +56,7 @@ const VoiceNotesProcessor = ({ voiceNote }) => {
     loadPrompts();
     
     // Conectar WebSocket
-    const socketConnection = io(VOICE_SERVER);
+    const socketConnection = io(SOCKET_URLS.VOICE_NOTES);
     socketConnection.on('connect', () => {
       console.log('Conectado al procesador de notas de voz');
     });

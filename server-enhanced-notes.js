@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import costsTracker from './api-costs-tracker.js';
 import emailService from './email-service.js';
+import { corsOptions } from './cors-config.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -15,16 +16,10 @@ const __dirname = dirname(__filename);
 const app = express();
 const server = createServer(app);
 const io = new Server(server, {
-  cors: {
-    origin: true,
-    methods: ["GET", "POST", "DELETE", "PATCH"]
-  }
+  cors: corsOptions
 });
 
-app.use(cors({ origin: true, credentials: true, methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], allowedHeaders: ["Content-Type", "Authorization"],
-  origin: true,
-  methods: ["GET", "POST", "DELETE", "PATCH"]
-}));
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use('/voice-notes', express.static('voice-notes'));
 

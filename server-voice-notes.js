@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import dotenv from 'dotenv';
 import axios from 'axios';
+import { corsOptions } from './cors-config.mjs';
 
 dotenv.config();
 
@@ -18,10 +19,7 @@ const __dirname = dirname(__filename);
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: {
-    origin: true,
-    methods: ["GET", "POST", "PUT", "DELETE"]
-  }
+  cors: corsOptions
 });
 
 // Configuración
@@ -31,7 +29,7 @@ const CLAUDE_API_KEY = process.env.CLAUDE_API_KEY;
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));
 
 // Directorio de datos

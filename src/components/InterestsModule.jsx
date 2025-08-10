@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { io } from 'socket.io-client';
+import { SOCKET_URLS } from '../config/api';
 import { 
   BookOpen, 
   Plus, 
@@ -83,7 +84,7 @@ const InterestsModule = () => {
 
   // Conectar con WebSocket
   useEffect(() => {
-    const newSocket = io('http://localhost:3001');
+    const newSocket = io(SOCKET_URLS.ENHANCED_NOTES);
     setSocket(newSocket);
 
     // Escuchar nuevos intereses

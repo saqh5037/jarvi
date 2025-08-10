@@ -14,8 +14,8 @@
       "cost": 0
     },
     "gemini": {
-      "calls": 36,
-      "tokens": 25353,
+      "calls": 37,
+      "tokens": 25618,
       "cost": 0
     },
     "claude": {
@@ -636,6 +636,23 @@
         "fileName": "voice_871556715_1754802466937.ogg",
         "language": "es",
         "transcriptionLength": 451
+      }
+    },
+    {
+      "id": 1754838258800,
+      "timestamp": "2025-08-10T15:04:18.800Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 265,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754838256806.ogg",
+        "language": "es",
+        "transcriptionLength": 22
       }
     }
   ]

@@ -32,6 +32,7 @@ import io from 'socket.io-client';
 import axios from 'axios';
 import VoiceNotesProcessor from './VoiceNotesProcessor';
 import PromptGenerator from './PromptGenerator';
+import { API_ENDPOINTS, SOCKET_URLS } from '../config/api';
 
 const EnhancedVoiceNotesModule = () => {
   const [voiceNotes, setVoiceNotes] = useState([]);
@@ -57,7 +58,7 @@ const EnhancedVoiceNotesModule = () => {
   
   useEffect(() => {
     // Conectar con Socket.io
-    socketRef.current = io('http://localhost:3001');
+    socketRef.current = io(SOCKET_URLS.ENHANCED_NOTES);
     
     socketRef.current.on('connect', () => {
       console.log('✅ Conectado al servidor');
@@ -135,7 +136,7 @@ const EnhancedVoiceNotesModule = () => {
   const loadVoiceNotes = async () => {
     try {
       console.log('🔄 Cargando notas de voz...');
-      const response = await axios.get('http://localhost:3001/api/voice-notes');
+      const response = await axios.get(API_ENDPOINTS.VOICE_NOTES);
       console.log('📝 Respuesta del servidor:', response.data);
       if (response.data.success) {
         const notes = response.data.notes || [];
@@ -150,7 +151,7 @@ const EnhancedVoiceNotesModule = () => {
   
   const loadAiStats = async () => {
     try {
-      const response = await axios.get('http://localhost:3001/api/costs');
+      const response = await axios.get(`${API_ENDPOINTS.ENHANCED_NOTES}/api/costs`);
       if (response.data.success) {
         const costs = response.data.costs || {};
         setAiStats(prev => ({
@@ -170,7 +171,7 @@ const EnhancedVoiceNotesModule = () => {
         audioRef.current.pause();
         setCurrentlyPlaying(null);
       } else {
-        audioRef.current.src = `http://localhost:3001/voice-notes/${note.fileName}`;
+        audioRef.current.src = `${API_ENDPOINTS.ENHANCED_NOTES}/voice-notes/${note.fileName}`;
         audioRef.current.play();
         setCurrentlyPlaying(note.id);
       }
@@ -209,7 +210,7 @@ const EnhancedVoiceNotesModule = () => {
         fileName: note.fileName
       });
       
-      const response = await axios.post('http://localhost:3001/api/transcribe', {
+      const response = await axios.post(`${API_ENDPOINTS.ENHANCED_NOTES}/api/transcribe`, {
         noteId: note.id,
         fileName: note.fileName
       });
@@ -240,7 +241,7 @@ const EnhancedVoiceNotesModule = () => {
   const deleteVoiceNote = async (note) => {
     if (confirm('¿Eliminar esta nota de voz?')) {
       try {
-        const response = await axios.delete(`http://localhost:3001/api/voice-notes/${note.id}`);
+        const response = await axios.delete(`${API_ENDPOINTS.ENHANCED_NOTES}/api/voice-notes/${note.id}`);
         if (response.data.success) {
           setVoiceNotes(prev => prev.filter(n => n.id !== note.id));
         }
@@ -577,7 +578,7 @@ const EnhancedVoiceNotesModule = () => {
                                   )}
                                   <div className="mt-3">
                                     <button
-                                      onClick={() => window.open(`http://localhost:3001/voice-notes/${note.fileName}.txt`, '_blank')}
+                                      onClick={() => window.open(`${API_ENDPOINTS.ENHANCED_NOTES}/voice-notes/${note.fileName}.txt`, '_blank')}
                                       className="px-3 py-1 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700 transition-colors flex items-center gap-2 inline-flex"
                                     >
                                       <FileText className="w-3 h-3" />
@@ -644,7 +645,7 @@ const EnhancedVoiceNotesModule = () => {
                         </button>
                         
                         <button
-                          onClick={() => window.open(`http://localhost:3001/voice-notes/${note.fileName}`, '_blank')}
+                          onClick={() => window.open(`${API_ENDPOINTS.ENHANCED_NOTES}/voice-notes/${note.fileName}`, '_blank')}
                           className="p-2 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-all"
                           title="Descargar"
                         >

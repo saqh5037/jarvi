@@ -9,6 +9,7 @@ import {
   Volume2,
   Mic
 } from 'lucide-react';
+import { API_ENDPOINTS } from '../config/api';
 
 const TodoModuleFixed = () => {
   const [todos, setTodos] = useState([]);
@@ -20,7 +21,7 @@ const TodoModuleFixed = () => {
   const loadTasks = async () => {
     try {
       console.log('Cargando tareas desde servidor...');
-      const response = await fetch('http://localhost:3003/api/tasks');
+      const response = await fetch(`${API_ENDPOINTS.TASKS}/api/tasks`);
       const data = await response.json();
       console.log('Datos recibidos:', data);
       
@@ -78,7 +79,7 @@ const TodoModuleFixed = () => {
         audioRef.current.pause();
         setPlayingAudio(null);
       } else {
-        audioRef.current.src = `http://localhost:3003/audio/${audioFile}`;
+        audioRef.current.src = `${API_ENDPOINTS.TASKS}/audio/${audioFile}`;
         audioRef.current.play();
         setPlayingAudio(audioFile);
       }

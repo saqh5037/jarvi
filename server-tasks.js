@@ -9,6 +9,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import dotenv from 'dotenv';
+import { corsOptions } from './cors-config.mjs';
 
 dotenv.config();
 
@@ -18,10 +19,7 @@ const __dirname = dirname(__filename);
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: {
-    origin: true,
-    methods: ["GET", "POST", "PUT", "DELETE"]
-  }
+  cors: corsOptions
 });
 
 // Configuración
@@ -30,7 +28,7 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyAGlwn2nDECzKnqRYqHo4
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Servir archivos de audio estáticos

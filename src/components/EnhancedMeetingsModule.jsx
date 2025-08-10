@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 import io from 'socket.io-client';
 import axios from 'axios';
+import { API_ENDPOINTS, SOCKET_URLS } from '../config/api';
 
 const EnhancedMeetingsModule = () => {
   const [meetings, setMeetings] = useState([]);
@@ -85,7 +86,7 @@ const EnhancedMeetingsModule = () => {
 
   useEffect(() => {
     // Conectar con Socket.io del servidor de reuniones
-    socketRef.current = io('http://localhost:3002');
+    socketRef.current = io(SOCKET_URLS.MEETINGS);
     
     socketRef.current.on('connect', () => {
       console.log('✅ Conectado al servidor de reuniones');
@@ -152,7 +153,7 @@ const EnhancedMeetingsModule = () => {
 
   const loadMeetings = async () => {
     try {
-      const response = await axios.get('http://localhost:3002/api/meetings');
+      const response = await axios.get(`${API_ENDPOINTS.MEETINGS}/api/meetings`);
       if (response.data.success) {
         setMeetings(response.data.meetings || []);
         updateAiStats();
@@ -215,7 +216,7 @@ const EnhancedMeetingsModule = () => {
     });
 
     try {
-      const response = await axios.post('http://localhost:3002/api/meetings/upload', formData, {
+      const response = await axios.post(`${API_ENDPOINTS.MEETINGS}/api/meetings/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         },
@@ -246,7 +247,7 @@ const EnhancedMeetingsModule = () => {
     try {
       setProcessingMeetings(prev => new Set([...prev, meeting.id]));
       
-      const response = await axios.post(`http://localhost:3002/api/meetings/${meeting.id}/transcribe`);
+      const response = await axios.post(`${API_ENDPOINTS.MEETINGS}/api/meetings/${meeting.id}/transcribe`);
       
       if (!response.data.success) {
         throw new Error(response.data.error || 'Error al transcribir');
@@ -266,7 +267,7 @@ const EnhancedMeetingsModule = () => {
 
   const generateSummary = async (meeting) => {
     try {
-      const response = await axios.post(`http://localhost:3002/api/meetings/${meeting.id}/summarize`);
+      const response = await axios.post(`${API_ENDPOINTS.MEETINGS}/api/meetings/${meeting.id}/summarize`);
       
       if (response.data.success) {
         console.log('✅ Resumen generado');
@@ -280,7 +281,7 @@ const EnhancedMeetingsModule = () => {
 
   const generateMinutes = async (meeting) => {
     try {
-      const response = await axios.post(`http://localhost:3002/api/meetings/${meeting.id}/generate-minutes`);
+      const response = await axios.post(`${API_ENDPOINTS.MEETINGS}/api/meetings/${meeting.id}/generate-minutes`);
       
       if (response.data.success) {
         console.log('✅ Minuta generada');
@@ -304,7 +305,7 @@ const EnhancedMeetingsModule = () => {
   
   const downloadTranscription = async (meeting) => {
     try {
-      window.open(`http://localhost:3002/api/meetings/${meeting.id}/download-transcription`, '_blank');
+      window.open(`${API_ENDPOINTS.MEETINGS}/api/meetings/${meeting.id}/download-transcription`, '_blank');
     } catch (error) {
       console.error('Error descargando transcripción:', error);
       alert('Error al descargar transcripción: ' + error.message);
@@ -313,7 +314,7 @@ const EnhancedMeetingsModule = () => {
   
   const generateAdvancedAnalysis = async (meeting) => {
     try {
-      const response = await axios.post(`http://localhost:3002/api/meetings/${meeting.id}/advanced-analysis`);
+      const response = await axios.post(`${API_ENDPOINTS.MEETINGS}/api/meetings/${meeting.id}/advanced-analysis`);
       
       if (response.data.success) {
         console.log('✅ Análisis avanzado generado');
@@ -333,7 +334,7 @@ const EnhancedMeetingsModule = () => {
       setIsLoadingCustomAnalysis(true);
       
       const response = await axios.post(
-        `http://localhost:3002/api/meetings/${showCustomAnalysisModal.id}/custom-analysis`,
+        `${API_ENDPOINTS.MEETINGS}/api/meetings/${showCustomAnalysisModal.id}/custom-analysis`,
         { prompt: customPrompt }
       );
       
@@ -376,7 +377,7 @@ const EnhancedMeetingsModule = () => {
       setIsRetranscribing(true);
       
       const response = await axios.post(
-        `http://localhost:3002/api/meetings/${showRetranscribeModal.id}/retranscribe`,
+        `${API_ENDPOINTS.MEETINGS}/api/meetings/${showRetranscribeModal.id}/retranscribe`,
         { 
           context: retranscribeContext,
           audioPath: showRetranscribeModal.audioPath
@@ -418,7 +419,7 @@ const EnhancedMeetingsModule = () => {
     if (!confirm('¿Estás seguro de eliminar esta reunión?')) return;
     
     try {
-      const response = await axios.delete(`http://localhost:3002/api/meetings/${meeting.id}`);
+      const response = await axios.delete(`${API_ENDPOINTS.MEETINGS}/api/meetings/${meeting.id}`);
       
       if (response.data.success) {
         console.log('✅ Reunión eliminada');
@@ -435,7 +436,7 @@ const EnhancedMeetingsModule = () => {
         audioRef.current.pause();
         setCurrentlyPlaying(null);
       } else {
-        audioRef.current.src = `http://localhost:3002${meeting.audioPath}`;
+        audioRef.current.src = `${API_ENDPOINTS.MEETINGS}${meeting.audioPath}`;
         audioRef.current.play();
         setCurrentlyPlaying(meeting.id);
       }

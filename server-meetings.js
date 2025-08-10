@@ -9,6 +9,7 @@ import { dirname } from 'path';
 import multer from 'multer';
 import dotenv from 'dotenv';
 import GeminiTranscriptionService from './gemini-transcription.js';
+import { corsOptions } from './cors-config.mjs';
 
 dotenv.config();
 
@@ -20,17 +21,11 @@ const server = createServer(app);
 
 // Configuración de Socket.io
 const io = new Server(server, {
-  cors: {
-    origin: true,
-    methods: ["GET", "POST", "DELETE", "PATCH"]
-  }
+  cors: corsOptions
 });
 
 // Middleware
-app.use(cors({ origin: true, credentials: true, methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], allowedHeaders: ["Content-Type", "Authorization"],
-  origin: true,
-  methods: ["GET", "POST", "DELETE", "PATCH"]
-}));
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Directorios para almacenar datos

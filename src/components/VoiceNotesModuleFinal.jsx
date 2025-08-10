@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import io from 'socket.io-client';
 import axios from 'axios';
+import { API_ENDPOINTS, SOCKET_URLS } from '../config/api';
 
 // Categorías disponibles con colores correctos
 const CATEGORIES = {
@@ -121,7 +122,7 @@ const VoiceNotesModuleFinal = () => {
   
   useEffect(() => {
     // Conectar con Socket.io
-    socketRef.current = io('http://localhost:3001');
+    socketRef.current = io(SOCKET_URLS.ENHANCED_NOTES);
     
     socketRef.current.on('connect', () => {
       console.log('✅ Conectado al servidor');
@@ -239,7 +240,7 @@ const VoiceNotesModuleFinal = () => {
   
   const loadVoiceNotes = async () => {
     try {
-      const response = await axios.get('http://localhost:3001/api/voice-notes');
+      const response = await axios.get(API_ENDPOINTS.VOICE_NOTES);
       if (response.data.success) {
         setVoiceNotes(response.data.notes);
         updateActivity('Notas de voz cargadas');
@@ -265,7 +266,7 @@ const VoiceNotesModuleFinal = () => {
         audioRef.current.pause();
         setCurrentlyPlaying(null);
       } else {
-        audioRef.current.src = `http://localhost:3001/voice-notes/${note.fileName}`;
+        audioRef.current.src = `${API_ENDPOINTS.ENHANCED_NOTES}/voice-notes/${note.fileName}`;
         audioRef.current.play();
         setCurrentlyPlaying(note.id);
         updateActivity(`Reproduciendo nota ${note.id}`);
@@ -280,7 +281,7 @@ const VoiceNotesModuleFinal = () => {
     updateActivity(`Transcribiendo nota ${note.id}`);
     
     try {
-      const response = await axios.post('http://localhost:3001/api/transcribe', {
+      const response = await axios.post(`${API_ENDPOINTS.ENHANCED_NOTES}/api/transcribe`, {
         noteId: note.id,
         fileName: note.fileName
       });
@@ -306,7 +307,7 @@ const VoiceNotesModuleFinal = () => {
   
   const downloadVoiceNote = (note) => {
     const link = document.createElement('a');
-    link.href = `http://localhost:3001/voice-notes/${note.fileName}`;
+    link.href = `${API_ENDPOINTS.ENHANCED_NOTES}/voice-notes/${note.fileName}`;
     link.download = `nota_${note.id}_${note.category || 'sin_categoria'}.ogg`;
     link.click();
     updateActivity(`Descargada nota ${note.id}`);
@@ -314,7 +315,7 @@ const VoiceNotesModuleFinal = () => {
   
   const deleteVoiceNote = async (note) => {
     try {
-      const response = await axios.delete(`http://localhost:3001/api/voice-notes/${note.id}`);
+      const response = await axios.delete(`${API_ENDPOINTS.ENHANCED_NOTES}/api/voice-notes/${note.id}`);
       
       if (response.data.success) {
         setVoiceNotes(prev => prev.filter(n => n.id !== note.id));
@@ -332,7 +333,7 @@ const VoiceNotesModuleFinal = () => {
   
   const updateNoteCategory = async (note, categoryId, subcategoryId = null) => {
     try {
-      const response = await axios.patch(`http://localhost:3001/api/voice-notes/${note.id}`, {
+      const response = await axios.patch(`${API_ENDPOINTS.ENHANCED_NOTES}/api/voice-notes/${note.id}`, {
         category: categoryId,
         subcategory: subcategoryId
       });

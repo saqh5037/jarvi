@@ -30,8 +30,9 @@ import {
 } from 'lucide-react';
 import io from 'socket.io-client';
 import axios from 'axios';
+import { API_ENDPOINTS, SOCKET_URLS } from '../config/api';
 
-const TASKS_SERVER = 'http://localhost:3003';
+const TASKS_SERVER = API_ENDPOINTS.TASKS;
 
 const TasksModule = () => {
   const [tasks, setTasks] = useState([]);
@@ -72,7 +73,7 @@ const TasksModule = () => {
 
   // Conectar WebSocket
   useEffect(() => {
-    const socketConnection = io(TASKS_SERVER);
+    const socketConnection = io(SOCKET_URLS.TASKS);
     
     socketConnection.on('connect', () => {
       console.log('Conectado al servidor de tareas');
