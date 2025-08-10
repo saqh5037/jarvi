@@ -16,6 +16,9 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// Configuración de API Keys
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyAGlwn2nDECzKnqRYqHo4hVUlNqGMsp1mw';
+
 const app = express();
 const server = createServer(app);
 
