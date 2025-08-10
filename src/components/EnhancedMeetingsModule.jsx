@@ -48,6 +48,7 @@ const EnhancedMeetingsModule = () => {
   const [showEmailModal, setShowEmailModal] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterCategory, setFilterCategory] = useState('all');
   const [expandedTranscriptions, setExpandedTranscriptions] = useState(new Set());
   const [isConnected, setIsConnected] = useState(false);
   const [processingMeetings, setProcessingMeetings] = useState(new Set());
@@ -74,8 +75,26 @@ const EnhancedMeetingsModule = () => {
     title: '',
     date: '',
     participants: '',
-    tags: ''
+    tags: '',
+    category: 'personal',
+    status: 'pendiente'
   });
+
+  // Categorías de reuniones
+  const meetingCategories = {
+    dynamtek: { label: 'Dynamtek', color: 'blue', icon: '💼' },
+    wbi: { label: 'WBI', color: 'purple', icon: '🏢' },
+    personal: { label: 'Personal', color: 'green', icon: '👤' },
+    proyectos: { label: 'Proyectos', color: 'orange', icon: '🚀' },
+    ingles: { label: 'Clases de Inglés', color: 'pink', icon: '🇬🇧' }
+  };
+
+  // Estados de reuniones
+  const meetingStatuses = {
+    pendiente: { label: 'Pendiente', color: 'yellow', icon: '⏳' },
+    procesada: { label: 'Procesada', color: 'green', icon: '✅' },
+    archivada: { label: 'Archivada', color: 'gray', icon: '📁' }
+  };
 
   const [emailTemplate, setEmailTemplate] = useState({
     to: '',
@@ -208,6 +227,8 @@ const EnhancedMeetingsModule = () => {
     formData.append('date', newMeeting.date || new Date().toISOString());
     formData.append('participants', newMeeting.participants);
     formData.append('tags', newMeeting.tags);
+    formData.append('category', newMeeting.category || 'personal');
+    formData.append('status', newMeeting.status || 'pendiente');
 
     setUploadingFile({
       name: file.name,
@@ -230,7 +251,7 @@ const EnhancedMeetingsModule = () => {
         console.log('✅ Archivo subido exitosamente:', response.data.meeting);
         setUploadingFile(null);
         setShowUploadForm(false);
-        setNewMeeting({ title: '', date: '', participants: '', tags: '' });
+        setNewMeeting({ title: '', date: '', participants: '', tags: '', category: 'personal', status: 'pendiente' });
         
         // La transcripción se iniciará automáticamente en el servidor
       }
@@ -527,7 +548,8 @@ Generado automáticamente por JARVI
     const matchesSearch = meeting.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          meeting.participants?.some(p => p.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = filterStatus === 'all' || meeting.status === filterStatus;
-    return matchesSearch && matchesStatus;
+    const matchesCategory = filterCategory === 'all' || meeting.category === filterCategory;
+    return matchesSearch && matchesStatus && matchesCategory;
   });
 
   const totalMeetings = meetings.length;
@@ -687,6 +709,36 @@ Generado automáticamente por JARVI
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
             </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+              <select
+                value={newMeeting.category}
+                onChange={(e) => setNewMeeting({...newMeeting, category: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                {Object.entries(meetingCategories).map(([key, cat]) => (
+                  <option key={key} value={key}>
+                    {cat.icon} {cat.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+              <select
+                value={newMeeting.status}
+                onChange={(e) => setNewMeeting({...newMeeting, status: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                {Object.entries(meetingStatuses).map(([key, status]) => (
+                  <option key={key} value={key}>
+                    {status.icon} {status.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Área de subida de archivo */}
@@ -759,16 +811,32 @@ Generado automáticamente por JARVI
             />
           </div>
           
+          {/* Filtro de categoría */}
+          <select
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+          >
+            <option value="all">Todas las categorías</option>
+            {Object.entries(meetingCategories).map(([key, cat]) => (
+              <option key={key} value={key}>
+                {cat.icon} {cat.label}
+              </option>
+            ))}
+          </select>
+          
+          {/* Filtro de estado */}
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
           >
             <option value="all">Todos los estados</option>
-            <option value="completed">Completadas</option>
-            <option value="transcribing">En proceso</option>
-            <option value="uploaded">Subidas</option>
-            <option value="error">Con errores</option>
+            {Object.entries(meetingStatuses).map(([key, status]) => (
+              <option key={key} value={key}>
+                {status.icon} {status.label}
+              </option>
+            ))}
           </select>
         </div>
       </div>
@@ -789,17 +857,32 @@ Generado automáticamente por JARVI
                   <div className="flex items-center gap-3 mb-2">
                     <h3 className="text-lg font-semibold text-gray-900">{meeting.title}</h3>
                     
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      meeting.status === 'uploaded' ? 'bg-blue-100 text-blue-700' :
-                      meeting.status === 'transcribing' ? 'bg-yellow-100 text-yellow-700' :
-                      meeting.status === 'completed' ? 'bg-green-100 text-green-700' :
-                      'bg-red-100 text-red-700'
-                    }`}>
-                      {processingMeetings.has(meeting.id) && <Loader2 className="w-3 h-3 animate-spin inline mr-1" />}
-                      {meeting.status === 'transcribing' ? 'Transcribiendo' :
-                       meeting.status === 'completed' ? 'Completado' :
-                       meeting.status === 'uploaded' ? 'Subido' : 'Error'}
-                    </span>
+                    {/* Badge de categoría */}
+                    {meeting.category && meetingCategories[meeting.category] && (
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium bg-${meetingCategories[meeting.category].color}-100 text-${meetingCategories[meeting.category].color}-700`}>
+                        {meetingCategories[meeting.category].icon} {meetingCategories[meeting.category].label}
+                      </span>
+                    )}
+                    
+                    {/* Badge de estado */}
+                    {meeting.status && meetingStatuses[meeting.status] ? (
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium bg-${meetingStatuses[meeting.status].color}-100 text-${meetingStatuses[meeting.status].color}-700`}>
+                        {processingMeetings.has(meeting.id) && <Loader2 className="w-3 h-3 animate-spin inline mr-1" />}
+                        {meetingStatuses[meeting.status].icon} {meetingStatuses[meeting.status].label}
+                      </span>
+                    ) : (
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        meeting.status === 'uploaded' ? 'bg-blue-100 text-blue-700' :
+                        meeting.status === 'transcribing' ? 'bg-yellow-100 text-yellow-700' :
+                        meeting.status === 'completed' ? 'bg-green-100 text-green-700' :
+                        'bg-red-100 text-red-700'
+                      }`}>
+                        {processingMeetings.has(meeting.id) && <Loader2 className="w-3 h-3 animate-spin inline mr-1" />}
+                        {meeting.status === 'transcribing' ? 'Transcribiendo' :
+                         meeting.status === 'completed' ? 'Completado' :
+                         meeting.status === 'uploaded' ? 'Subido' : 'Error'}
+                      </span>
+                    )}
 
                     {meeting.fileSize && (
                       <span className="text-sm text-gray-500">

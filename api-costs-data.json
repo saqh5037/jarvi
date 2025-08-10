@@ -14,8 +14,8 @@
       "cost": 0
     },
     "gemini": {
-      "calls": 37,
-      "tokens": 25618,
+      "calls": 42,
+      "tokens": 27573,
       "cost": 0
     },
     "claude": {
@@ -653,6 +653,91 @@
         "fileName": "voice_871556715_1754838256806.ogg",
         "language": "es",
         "transcriptionLength": 22
+      }
+    },
+    {
+      "id": 1754841031507,
+      "timestamp": "2025-08-10T15:50:31.507Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 286,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754841029658.ogg",
+        "language": "es",
+        "transcriptionLength": 43
+      }
+    },
+    {
+      "id": 1754841121243,
+      "timestamp": "2025-08-10T15:52:01.243Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 288,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "reminder_871556715_1754841120170.ogg",
+        "language": "es",
+        "transcriptionLength": 45
+      }
+    },
+    {
+      "id": 1754841154015,
+      "timestamp": "2025-08-10T15:52:34.015Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 289,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "todo_871556715_1754841152911.ogg",
+        "language": "es",
+        "transcriptionLength": 46
+      }
+    },
+    {
+      "id": 1754842026698,
+      "timestamp": "2025-08-10T16:07:06.698Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 460,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754842024170.ogg",
+        "language": "es",
+        "transcriptionLength": 217
+      }
+    },
+    {
+      "id": 1754842399635,
+      "timestamp": "2025-08-10T16:13:19.635Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 632,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754842396894.ogg",
+        "language": "es",
+        "transcriptionLength": 389
       }
     }
   ]

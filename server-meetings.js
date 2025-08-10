@@ -110,7 +110,7 @@ app.post('/api/meetings/upload', upload.single('audio'), async (req, res) => {
       });
     }
     
-    const { title, date, participants, tags } = req.body;
+    const { title, date, participants, tags, category, status } = req.body;
     
     const meeting = {
       id: Date.now(),
@@ -118,11 +118,12 @@ app.post('/api/meetings/upload', upload.single('audio'), async (req, res) => {
       date: date || new Date().toISOString(),
       participants: participants ? participants.split(',').map(p => p.trim()) : [],
       tags: tags ? tags.split(',').map(t => t.trim()) : [],
+      category: category || 'personal',
+      status: status || 'pendiente',
       audioFile: req.file.filename,
       audioPath: `/meetings/audio/${req.file.filename}`,
       fileSize: req.file.size,
       duration: 0, // Se calculará después
-      status: 'uploaded',
       transcription: null,
       summary: null,
       keyPoints: [],
@@ -580,7 +581,7 @@ Formato el resultado de manera clara y profesional.`;
     meeting.advancedAnalysis = advancedAnalysis;
     meeting.contextUsed = context;
     meeting.retranscribedAt = new Date().toISOString();
-    meeting.status = 'completed';
+    meeting.status = 'procesada';
     
     // Guardar cambios
     fs.writeFileSync(meetingsFile, JSON.stringify(meetings, null, 2));
@@ -684,7 +685,7 @@ async function processTranscription(meetingId) {
     const transcription = await transcriptionService.transcribeAudio(audioPath, 'es');
     
     meeting.transcription = transcription;
-    meeting.status = 'completed';
+    meeting.status = 'procesada';
     
     // Calcular tokens y costo
     meeting.tokens = Math.ceil(transcription.length / 4);
@@ -695,7 +696,7 @@ async function processTranscription(meetingId) {
     io.emit('meeting-transcribed', {
       id: meetingId,
       transcription,
-      status: 'completed'
+      status: 'procesada'
     });
     
     console.log(`✅ Reunión transcrita: ${meeting.title}`);
