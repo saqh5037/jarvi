@@ -1,0 +1,14 @@
+{
+  "id": 1754727047,
+  "title": "Recordatorio #3",
+  "description": "Descripción del recordatorio 3",
+  "datetime": "2025-08-09T08:10:34",
+  "priority": "low",
+  "completed": true,
+  "category": "work",
+  "sender": {
+    "id": 871556715,
+    "name": "Samuel"
+  },
+  "timestamp": "2025-08-09T08:10:34.3NZ"
+}

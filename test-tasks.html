@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Sistema de Tareas JARVI</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+        }
+        .tasks-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .task-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            position: relative;
+            transition: transform 0.3s;
+        }
+        .task-card:hover {
+            transform: translateY(-5px);
+        }
+        .priority-indicator {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            border-radius: 15px 15px 0 0;
+        }
+        .priority-urgent { background: #ef4444; }
+        .priority-high { background: #f97316; }
+        .priority-medium { background: #eab308; }
+        .priority-low { background: #22c55e; }
+        .task-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #1f2937;
+        }
+        .task-description {
+            color: #6b7280;
+            margin-bottom: 15px;
+        }
+        .task-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .tag {
+            background: #e0e7ff;
+            color: #4f46e5;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+        }
+        .location {
+            color: #6b7280;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .voice-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .category-icon {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 1.2em;
+            margin-top: 50px;
+        }
+        .error {
+            background: #fee;
+            color: #c00;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Sistema de Tareas JARVI - Prueba</h1>
+        
+        <div id="stats" class="stats">
+            <div class="stat-card">
+                <div>Total</div>
+                <div class="stat-number" id="total">-</div>
+            </div>
+            <div class="stat-card">
+                <div>Pendientes</div>
+                <div class="stat-number" id="pending">-</div>
+            </div>
+            <div class="stat-card">
+                <div>Completadas</div>
+                <div class="stat-number" id="completed">-</div>
+            </div>
+            <div class="stat-card">
+                <div>Vencidas</div>
+                <div class="stat-number" id="overdue">-</div>
+            </div>
+        </div>
+
+        <div id="tasks" class="tasks-grid">
+            <div class="loading">Cargando tareas...</div>
+        </div>
+    </div>
+
+    <script>
+        const TASKS_SERVER = 'http://localhost:3003';
+        
+        const categoryIcons = {
+            personal: '👤',
+            work: '💼',
+            shopping: '🛒',
+            health: '🏥',
+            education: '📚',
+            home: '🏠'
+        };
+
+        async function loadTasks() {
+            try {
+                // Cargar tareas
+                const tasksResponse = await fetch(`${TASKS_SERVER}/api/tasks`);
+                const tasksData = await tasksResponse.json();
+                
+                // Cargar estadísticas
+                const statsResponse = await fetch(`${TASKS_SERVER}/api/stats`);
+                const statsData = await statsResponse.json();
+                
+                // Actualizar estadísticas
+                if (statsData.success) {
+                    document.getElementById('total').textContent = statsData.stats.total;
+                    document.getElementById('pending').textContent = statsData.stats.pending;
+                    document.getElementById('completed').textContent = statsData.stats.completed;
+                    document.getElementById('overdue').textContent = statsData.stats.overdue;
+                }
+                
+                // Mostrar tareas
+                const tasksContainer = document.getElementById('tasks');
+                
+                if (tasksData.success && tasksData.tasks.length > 0) {
+                    tasksContainer.innerHTML = tasksData.tasks.map(task => `
+                        <div class="task-card">
+                            <div class="priority-indicator priority-${task.priority}"></div>
+                            
+                            ${task.createdBy === 'telegram-voice' ? `
+                                <div class="voice-badge">
+                                    🔔 Recordatorio
+                                </div>
+                            ` : ''}
+                            
+                            <div class="category-icon">${categoryIcons[task.category] || '📋'}</div>
+                            
+                            <div class="task-title">${task.title}</div>
+                            
+                            ${task.description && task.description !== task.title ? `
+                                <div class="task-description">${task.description}</div>
+                            ` : ''}
+                            
+                            ${task.location ? `
+                                <div class="location">📍 ${task.location}</div>
+                            ` : ''}
+                            
+                            <div class="task-meta">
+                                ${task.tags && task.tags.length > 0 ? 
+                                    task.tags.slice(0, 3).map(tag => `<span class="tag">#${tag}</span>`).join('')
+                                : ''}
+                            </div>
+                            
+                            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e5e7eb; font-size: 0.8em; color: #6b7280;">
+                                ${task.createdBy === 'telegram-voice' ? '🎤 Recordatorio por voz' : 
+                                  task.createdBy === 'telegram' ? '💬 Telegram' : 
+                                  '🌐 Web'} • 
+                                ${new Date(task.createdAt).toLocaleTimeString('es-ES', {
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                })}
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    tasksContainer.innerHTML = '<div style="text-align: center; color: white;">No hay tareas</div>';
+                }
+                
+            } catch (error) {
+                console.error('Error cargando tareas:', error);
+                document.getElementById('tasks').innerHTML = `
+                    <div class="error">
+                        Error al cargar las tareas: ${error.message}<br>
+                        Asegúrate de que el servidor esté ejecutándose en el puerto 3003
+                    </div>
+                `;
+            }
+        }
+
+        // Cargar tareas al iniciar
+        loadTasks();
+        
+        // Actualizar cada 5 segundos
+        setInterval(loadTasks, 5000);
+        
+        // WebSocket para actualizaciones en tiempo real
+        const socket = new WebSocket('ws://localhost:3003');
+        socket.onmessage = (event) => {
+            console.log('Actualización recibida:', event.data);
+            loadTasks();
+        };
+    </script>
+</body>
+</html>

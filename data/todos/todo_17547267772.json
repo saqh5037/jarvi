@@ -1,0 +1,17 @@
+{
+  "id": 17547267772,
+  "title": "Implementar Dark Mode",
+  "description": "Agregar tema oscuro al dashboard JARVI",
+  "priority": "medium",
+  "category": "work",
+  "project": "JARVI",
+  "tags": [
+    "frontend",
+    "UI/UX"
+  ],
+  "sender": {
+    "id": 871556715,
+    "name": "Samuel"
+  },
+  "timestamp": "2025-08-09T08:06:17.3NZ"
+}

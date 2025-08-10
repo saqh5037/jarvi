@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Voice Notes</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 24px;
+        }
+        .status {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        .connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        .disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .notes-list {
+            display: grid;
+            gap: 16px;
+        }
+        .note-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            background: #fafafa;
+        }
+        .note-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        .note-sender {
+            font-weight: 600;
+            color: #6b46c1;
+        }
+        .note-time {
+            color: #666;
+            font-size: 14px;
+        }
+        .note-transcription {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 3px solid #6b46c1;
+            margin-top: 8px;
+            font-style: italic;
+        }
+        .note-actions {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px;
+        }
+        button {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #6b46c1;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #553c9a;
+        }
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px;
+            border-radius: 8px;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #6b46c1;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 8px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎙️ Test Voice Notes - JARVI</h1>
+        
+        <div id="status" class="status disconnected">
+            ❌ Desconectado
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="totalNotes">0</div>
+                <div class="stat-label">Total Notas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="transcribedNotes">0</div>
+                <div class="stat-label">Transcritas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalTokens">0</div>
+                <div class="stat-label">Tokens Usados</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalCost">$0.00</div>
+                <div class="stat-label">Costo Total</div>
+            </div>
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+            <button class="btn-primary" onclick="loadNotes()">🔄 Recargar Notas</button>
+            <button class="btn-primary" onclick="transcribeAll()">✨ Transcribir Todas</button>
+            <button class="btn-secondary" onclick="createTestNote()">➕ Crear Nota de Prueba</button>
+        </div>
+        
+        <h2>Notas de Voz</h2>
+        <div id="notes" class="notes-list">
+            <p style="color: #666;">Cargando notas...</p>
+        </div>
+    </div>
+
+    <script>
+        const socket = io('http://localhost:3001');
+        let notes = [];
+        let transcribingNotes = new Set();
+        
+        socket.on('connect', () => {
+            console.log('✅ Conectado al servidor');
+            document.getElementById('status').className = 'status connected';
+            document.getElementById('status').innerHTML = '✅ Conectado';
+            loadNotes();
+        });
+        
+        socket.on('disconnect', () => {
+            console.log('❌ Desconectado del servidor');
+            document.getElementById('status').className = 'status disconnected';
+            document.getElementById('status').innerHTML = '❌ Desconectado';
+        });
+        
+        socket.on('new-voice-note', (note) => {
+            console.log('🎙️ Nueva nota recibida:', note);
+            notes.unshift(note);
+            renderNotes();
+        });
+        
+        socket.on('transcription-progress', ({ noteId, progress, tokens }) => {
+            console.log(`📊 Progreso ${noteId}: ${progress}% - ${tokens} tokens`);
+            const progressEl = document.getElementById(`progress-${noteId}`);
+            if (progressEl) {
+                progressEl.innerHTML = `Transcribiendo... ${progress}% (${tokens} tokens)`;
+            }
+        });
+        
+        socket.on('transcription-complete', ({ noteId, transcription, tokens, cost }) => {
+            console.log('✅ Transcripción completa:', noteId);
+            const note = notes.find(n => n.id == noteId);
+            if (note) {
+                note.transcription = transcription;
+                note.tokens = tokens;
+                note.cost = cost;
+            }
+            transcribingNotes.delete(noteId);
+            renderNotes();
+        });
+        
+        async function loadNotes() {
+            try {
+                const response = await fetch('http://localhost:3001/api/voice-notes');
+                const data = await response.json();
+                if (data.success) {
+                    notes = data.notes || [];
+                    console.log(`📝 ${notes.length} notas cargadas`);
+                    renderNotes();
+                }
+            } catch (error) {
+                console.error('Error cargando notas:', error);
+            }
+        }
+        
+        function renderNotes() {
+            const container = document.getElementById('notes');
+            const totalNotes = notes.length;
+            const transcribedNotes = notes.filter(n => n.transcription).length;
+            const totalTokens = notes.reduce((sum, n) => sum + (n.tokens || 0), 0);
+            const totalCost = notes.reduce((sum, n) => sum + (n.cost || 0), 0);
+            
+            // Actualizar estadísticas
+            document.getElementById('totalNotes').textContent = totalNotes;
+            document.getElementById('transcribedNotes').textContent = transcribedNotes;
+            document.getElementById('totalTokens').textContent = totalTokens.toLocaleString();
+            document.getElementById('totalCost').textContent = `$${totalCost.toFixed(4)}`;
+            
+            if (notes.length === 0) {
+                container.innerHTML = '<p style="color: #666;">No hay notas de voz</p>';
+                return;
+            }
+            
+            container.innerHTML = notes.map(note => `
+                <div class="note-card">
+                    <div class="note-header">
+                        <span class="note-sender">${note.sender?.name || 'Usuario'}</span>
+                        <span class="note-time">${new Date(note.timestamp).toLocaleString()}</span>
+                    </div>
+                    <div>
+                        📱 ID: ${note.id} | ⏱️ ${note.duration || 0}s
+                        ${note.fileName ? ` | 📁 ${note.fileName}` : ''}
+                    </div>
+                    ${note.transcription ? `
+                        <div class="note-transcription">
+                            "${note.transcription}"
+                            ${note.tokens ? `<br><small>📊 ${note.tokens} tokens | 💰 $${(note.cost || 0).toFixed(4)}</small>` : ''}
+                        </div>
+                    ` : transcribingNotes.has(note.id) ? `
+                        <div id="progress-${note.id}" style="color: #6b46c1; margin-top: 8px;">
+                            Transcribiendo... <span class="loading"></span>
+                        </div>
+                    ` : `
+                        <div class="note-actions">
+                            <button class="btn-primary" onclick="transcribeNote('${note.id}', '${note.fileName}')">
+                                🎯 Transcribir
+                            </button>
+                        </div>
+                    `}
+                </div>
+            `).join('');
+        }
+        
+        async function transcribeNote(noteId, fileName) {
+            if (transcribingNotes.has(noteId)) return;
+            
+            transcribingNotes.add(noteId);
+            renderNotes();
+            
+            try {
+                const response = await fetch('http://localhost:3001/api/transcribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ noteId, fileName })
+                });
+                
+                const data = await response.json();
+                if (!data.success) {
+                    throw new Error(data.error || 'Error en transcripción');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al transcribir: ' + error.message);
+                transcribingNotes.delete(noteId);
+                renderNotes();
+            }
+        }
+        
+        function transcribeAll() {
+            const notesToTranscribe = notes.filter(n => !n.transcription && !transcribingNotes.has(n.id));
+            if (notesToTranscribe.length === 0) {
+                alert('No hay notas pendientes de transcribir');
+                return;
+            }
+            
+            console.log(`🚀 Transcribiendo ${notesToTranscribe.length} notas...`);
+            notesToTranscribe.forEach((note, index) => {
+                setTimeout(() => {
+                    transcribeNote(note.id, note.fileName);
+                }, index * 3000);
+            });
+        }
+        
+        function createTestNote() {
+            const testNote = {
+                id: Date.now(),
+                fileName: `test_voice_${Date.now()}.ogg`,
+                duration: Math.floor(Math.random() * 20) + 5,
+                sender: {
+                    id: 999999,
+                    name: 'Usuario de Prueba',
+                    username: 'test_user'
+                },
+                timestamp: new Date().toISOString()
+            };
+            
+            socket.emit('new-voice-note-from-telegram', testNote);
+            alert('Nota de prueba creada');
+        }
+        
+        // Cargar notas al inicio
+        loadNotes();
+    </script>
+</body>
+</html>

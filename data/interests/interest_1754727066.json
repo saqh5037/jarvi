@@ -1,0 +1,20 @@
+{
+  "id": 1754727066,
+  "title": "Artículo interesante #2",
+  "description": "Contenido muy relevante sobre tecnología",
+  "url": "https://example.com/article-2",
+  "category": "technology",
+  "type": "article",
+  "dateRead": null,
+  "favorite": true,
+  "tags": [
+    "tech",
+    "ai"
+  ],
+  "priority": "high",
+  "sender": {
+    "id": 871556715,
+    "name": "Samuel"
+  },
+  "timestamp": "2025-08-09T08:10:34.3NZ"
+}

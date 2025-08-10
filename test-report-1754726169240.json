@@ -1,0 +1,63 @@
+{
+  "timestamp": "2025-08-09T07:56:09.239Z",
+  "totalTests": 9,
+  "passed": 9,
+  "failed": 0,
+  "duration": 9078,
+  "tests": [
+    {
+      "name": "Conexión WebSocket",
+      "status": "passed",
+      "startTime": 1754726160161,
+      "duration": 8
+    },
+    {
+      "name": "Verificación de Endpoints",
+      "status": "passed",
+      "startTime": 1754726161170,
+      "duration": 11
+    },
+    {
+      "name": "Comando Menu",
+      "status": "passed",
+      "startTime": 1754726162183,
+      "duration": 6
+    },
+    {
+      "name": "Nota de Voz",
+      "status": "passed",
+      "startTime": 1754726163191,
+      "duration": 7
+    },
+    {
+      "name": "Recordatorio",
+      "status": "passed",
+      "startTime": 1754726164200,
+      "duration": 6
+    },
+    {
+      "name": "Tarea ToDo",
+      "status": "passed",
+      "startTime": 1754726165208,
+      "duration": 6
+    },
+    {
+      "name": "Reunión",
+      "status": "passed",
+      "startTime": 1754726166215,
+      "duration": 12
+    },
+    {
+      "name": "Interés",
+      "status": "passed",
+      "startTime": 1754726167229,
+      "duration": 6
+    },
+    {
+      "name": "Transcripción",
+      "status": "passed",
+      "startTime": 1754726168237,
+      "duration": 0
+    }
+  ]
+}

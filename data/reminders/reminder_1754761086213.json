@@ -1,0 +1,13 @@
+{
+  "id": 1754761086213,
+  "content": "Quiero comprar huevos a las tres de la tarde y aprovechar y comprar cervezas otra vez. Por favor, generame una lista de esas dos cosas que tengo que ir al súper.",
+  "type": "voice",
+  "audioFile": "reminder_871556715_1754761086213.ogg",
+  "duration": 11,
+  "sender": {
+    "name": "Samuel",
+    "id": 871556715
+  },
+  "timestamp": "2025-08-09T17:38:08.003Z",
+  "status": "pending"
+}

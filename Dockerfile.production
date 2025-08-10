@@ -1,0 +1,52 @@
+# Dockerfile for JARVI Application - Production
+FROM node:18-alpine
+
+# Install system dependencies
+RUN apk add --no-cache python3 make g++ ffmpeg
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including dev for build)
+RUN npm ci
+
+# Copy application files
+COPY . .
+
+# Create necessary directories
+RUN mkdir -p /app/voice-notes \
+    /app/data/reminders \
+    /app/data/todos \
+    /app/data/meetings \
+    /app/data/interests \
+    /app/tasks/data \
+    /app/tasks/audio \
+    /app/meetings/recordings
+
+# Expose all ports
+EXPOSE 5173 3001 3002 3003 3004
+
+# Create startup script
+RUN echo '#!/bin/sh' > /app/start.sh && \
+    echo 'echo "🚀 Starting JARVI services..."' >> /app/start.sh && \
+    echo '' >> /app/start.sh && \
+    echo '# Start backend services' >> /app/start.sh && \
+    echo 'node server-enhanced-notes.js &' >> /app/start.sh && \
+    echo 'node server-meetings.js &' >> /app/start.sh && \
+    echo 'node server-tasks.js &' >> /app/start.sh && \
+    echo 'node server-voice-notes.js &' >> /app/start.sh && \
+    echo '' >> /app/start.sh && \
+    echo '# Start Telegram bot if configured' >> /app/start.sh && \
+    echo 'if [ -n "$TELEGRAM_BOT_TOKEN" ]; then' >> /app/start.sh && \
+    echo '  node telegram-bot.js &' >> /app/start.sh && \
+    echo 'fi' >> /app/start.sh && \
+    echo '' >> /app/start.sh && \
+    echo '# Start frontend (development mode for hot reload)' >> /app/start.sh && \
+    echo 'npm run dev -- --host 0.0.0.0' >> /app/start.sh && \
+    chmod +x /app/start.sh
+
+# Use the startup script
+CMD ["/app/start.sh"]

@@ -1,0 +1,478 @@
+/* JARVIS IRON MAN THEME - Sistema de Diseño Futurista */
+
+/* ==================== VARIABLES DE COLOR ==================== */
+:root {
+  /* Paleta Principal Iron Man */
+  --iron-red-dark: #AA0505;
+  --iron-red-blood: #6A0C0B;
+  --iron-gold-dark: #B97D10;
+  --iron-gold-bright: #FBCA03;
+  --iron-blue: #67C7EB;
+  
+  /* Paleta Cyberpunk Neon */
+  --cyber-pink: #FF3D94;
+  --cyber-violet: #B5307E;
+  --cyber-purple: #6A2A98;
+  --cyber-indigo: #3F1C6D;
+  --cyber-dark: #210B4B;
+  
+  /* Neon Accents */
+  --neon-cyan: #00FFCC;
+  --neon-magenta: #FF00CC;
+  --neon-yellow: #FFCC00;
+  --neon-green: #00FFAA;
+  --neon-blue: #00CCFF;
+  
+  /* UI Colors */
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #1a1a2e;
+  --bg-tertiary: #16213e;
+  --border-color: rgba(0, 255, 204, 0.2);
+  --text-primary: #FFFFFF;
+  --text-secondary: rgba(255, 255, 255, 0.8);
+  --text-muted: rgba(255, 255, 255, 0.5);
+  
+  /* Glassmorphism */
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-shadow: rgba(31, 38, 135, 0.37);
+}
+
+/* ==================== FUENTES ==================== */
+/* Fonts are imported in index.css to avoid CSS import order issues */
+
+/* ==================== EFECTOS GLOBALES ==================== */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Exo 2', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  overflow-x: hidden;
+}
+
+/* ==================== GLASSMORPHISM ==================== */
+.glass-panel {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1),
+    rgba(255, 255, 255, 0.05)
+  );
+  backdrop-filter: blur(10px) saturate(180%);
+  -webkit-backdrop-filter: blur(10px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  box-shadow: 
+    0 8px 32px 0 var(--glass-shadow),
+    inset 0 0 20px rgba(0, 255, 204, 0.05);
+  transition: all 0.3s ease;
+}
+
+.glass-panel:hover {
+  border-color: var(--neon-cyan);
+  box-shadow: 
+    0 8px 32px 0 rgba(0, 255, 204, 0.2),
+    inset 0 0 30px rgba(0, 255, 204, 0.1);
+  transform: translateY(-2px);
+}
+
+/* ==================== NEON EFFECTS ==================== */
+.neon-glow {
+  color: var(--neon-cyan);
+  text-shadow: 
+    0 0 5px currentColor,
+    0 0 10px currentColor,
+    0 0 20px currentColor,
+    0 0 40px currentColor;
+  animation: pulse-neon 2s ease-in-out infinite;
+}
+
+.neon-border {
+  border: 2px solid var(--neon-cyan);
+  box-shadow: 
+    0 0 10px var(--neon-cyan),
+    inset 0 0 10px rgba(0, 255, 204, 0.2);
+  animation: border-pulse 3s ease-in-out infinite;
+}
+
+@keyframes pulse-neon {
+  0%, 100% { 
+    opacity: 1; 
+    filter: brightness(1) blur(0px);
+  }
+  50% { 
+    opacity: 0.8; 
+    filter: brightness(1.5) blur(1px);
+  }
+}
+
+@keyframes border-pulse {
+  0%, 100% {
+    border-color: var(--neon-cyan);
+    box-shadow: 
+      0 0 10px var(--neon-cyan),
+      inset 0 0 10px rgba(0, 255, 204, 0.2);
+  }
+  50% {
+    border-color: var(--neon-blue);
+    box-shadow: 
+      0 0 20px var(--neon-blue),
+      inset 0 0 20px rgba(0, 204, 255, 0.3);
+  }
+}
+
+/* ==================== HUD FRAME ==================== */
+.hud-frame {
+  position: relative;
+  padding: 20px;
+  background: 
+    linear-gradient(135deg, transparent 10px, var(--glass-bg) 10px),
+    linear-gradient(225deg, transparent 10px, var(--glass-bg) 10px),
+    linear-gradient(315deg, transparent 10px, var(--glass-bg) 10px),
+    linear-gradient(45deg, transparent 10px, var(--glass-bg) 10px);
+  background-position: 
+    top left,
+    top right,
+    bottom right,
+    bottom left;
+  background-size: 50% 50%;
+  background-repeat: no-repeat;
+  border: 1px solid var(--neon-cyan);
+}
+
+.hud-frame::before,
+.hud-frame::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--neon-cyan);
+}
+
+.hud-frame::before {
+  top: -2px;
+  left: -2px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.hud-frame::after {
+  bottom: -2px;
+  right: -2px;
+  border-left: none;
+  border-top: none;
+}
+
+/* ==================== SCANLINE EFFECT ==================== */
+.scanline-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.scanline-effect::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    0deg,
+    transparent 0%,
+    rgba(0, 255, 204, 0.03) 50%,
+    transparent 100%
+  );
+  animation: scan 8s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes scan {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+/* ==================== HOLOGRAPHIC EFFECT ==================== */
+.holographic {
+  background: linear-gradient(
+    45deg,
+    rgba(0, 255, 204, 0.1),
+    rgba(255, 0, 204, 0.1),
+    rgba(0, 204, 255, 0.1)
+  );
+  background-size: 200% 200%;
+  animation: holographic-shift 3s ease infinite;
+}
+
+@keyframes holographic-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ==================== GLITCH EFFECT ==================== */
+.glitch {
+  position: relative;
+  color: var(--neon-cyan);
+  font-family: 'Orbitron', monospace;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.glitch::before,
+.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.glitch::before {
+  animation: glitch-1 0.5s infinite;
+  color: var(--cyber-pink);
+  z-index: -1;
+}
+
+.glitch::after {
+  animation: glitch-2 0.5s infinite;
+  color: var(--neon-blue);
+  z-index: -2;
+}
+
+@keyframes glitch-1 {
+  0%, 100% {
+    clip: rect(0, 900px, 0, 0);
+    transform: translate(0);
+  }
+  20% {
+    clip: rect(20px, 900px, 30px, 0);
+    transform: translate(-2px, 2px);
+  }
+  40% {
+    clip: rect(50px, 900px, 60px, 0);
+    transform: translate(2px, -2px);
+  }
+  60% {
+    clip: rect(80px, 900px, 90px, 0);
+    transform: translate(-2px, 2px);
+  }
+  80% {
+    clip: rect(10px, 900px, 20px, 0);
+    transform: translate(2px, -2px);
+  }
+}
+
+@keyframes glitch-2 {
+  0%, 100% {
+    clip: rect(0, 900px, 0, 0);
+    transform: translate(0);
+  }
+  20% {
+    clip: rect(30px, 900px, 40px, 0);
+    transform: translate(2px, -2px);
+  }
+  40% {
+    clip: rect(60px, 900px, 70px, 0);
+    transform: translate(-2px, 2px);
+  }
+  60% {
+    clip: rect(90px, 900px, 100px, 0);
+    transform: translate(2px, -2px);
+  }
+  80% {
+    clip: rect(20px, 900px, 30px, 0);
+    transform: translate(-2px, 2px);
+  }
+}
+
+/* ==================== TYPOGRAPHY ==================== */
+.text-display {
+  font-family: 'Orbitron', monospace;
+  font-size: clamp(3rem, 5vw, 4.5rem);
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, var(--neon-cyan), var(--neon-blue));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-heading-1 {
+  font-family: 'Orbitron', monospace;
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 700;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 20px rgba(0, 255, 204, 0.5);
+}
+
+.text-heading-2 {
+  font-family: 'Orbitron', monospace;
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.text-body {
+  font-family: 'Exo 2', sans-serif;
+  font-size: clamp(1rem, 2vw, 1.125rem);
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.text-data {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.875rem;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  color: var(--neon-cyan);
+  text-transform: uppercase;
+}
+
+.text-label {
+  font-family: 'Audiowide', cursive;
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ==================== BUTTONS ==================== */
+.btn-neon {
+  padding: 12px 24px;
+  background: transparent;
+  color: var(--neon-cyan);
+  border: 2px solid var(--neon-cyan);
+  border-radius: 4px;
+  font-family: 'Orbitron', monospace;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.btn-neon::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: var(--neon-cyan);
+  transform: translate(-50%, -50%);
+  transition: all 0.3s ease;
+  z-index: -1;
+}
+
+.btn-neon:hover {
+  color: var(--bg-primary);
+  box-shadow: 
+    0 0 20px var(--neon-cyan),
+    inset 0 0 20px rgba(0, 255, 204, 0.2);
+}
+
+.btn-neon:hover::before {
+  width: 100%;
+  height: 100%;
+}
+
+/* ==================== ALERTS ==================== */
+.alert-critical {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 61, 148, 0.2),
+    rgba(255, 61, 148, 0.1)
+  );
+  border: 2px solid var(--cyber-pink);
+  border-radius: 8px;
+  padding: 16px;
+  animation: critical-pulse 2s ease-in-out infinite;
+}
+
+@keyframes critical-pulse {
+  0%, 100% {
+    box-shadow: 
+      0 0 10px rgba(255, 61, 148, 0.5),
+      inset 0 0 10px rgba(255, 61, 148, 0.2);
+  }
+  50% {
+    box-shadow: 
+      0 0 20px rgba(255, 61, 148, 0.8),
+      inset 0 0 20px rgba(255, 61, 148, 0.4);
+  }
+}
+
+/* ==================== LOADING ==================== */
+.loading-arc {
+  width: 100px;
+  height: 100px;
+  border: 3px solid transparent;
+  border-top-color: var(--neon-cyan);
+  border-radius: 50%;
+  animation: rotate 1s linear infinite;
+  position: relative;
+}
+
+.loading-arc::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  right: -3px;
+  bottom: -3px;
+  border: 3px solid transparent;
+  border-top-color: var(--neon-blue);
+  border-radius: 50%;
+  animation: rotate 0.5s linear infinite reverse;
+}
+
+@keyframes rotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ==================== GRID SYSTEM ==================== */
+.hud-grid {
+  display: grid;
+  gap: 20px;
+  padding: 20px;
+}
+
+.hud-grid-2 {
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+}
+
+.hud-grid-3 {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.hud-grid-4 {
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+/* ==================== RESPONSIVE ==================== */
+@media (max-width: 768px) {
+  .hud-grid-2,
+  .hud-grid-3,
+  .hud-grid-4 {
+    grid-template-columns: 1fr;
+  }
+  
+  .text-display {
+    font-size: 2rem;
+  }
+  
+  .text-heading-1 {
+    font-size: 1.5rem;
+  }
+}

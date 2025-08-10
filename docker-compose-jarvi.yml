@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  jarvi:
+    container_name: jarvi-app
+    image: jarvi:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"   # Frontend Vite
+      - "3001:3001"   # Enhanced Notes API
+      - "3002:3002"   # Meetings API
+      - "3003:3003"   # Tasks API
+      - "3004:3004"   # Voice Notes API
+    environment:
+      - NODE_ENV=development
+      - GEMINI_API_KEY=AIzaSyAGlwn2nDECzKnqRYqHo4hVUlNqGMsp1mw
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
+    volumes:
+      - ./voice-notes:/app/voice-notes
+      - ./data:/app/data
+      - ./tasks/data:/app/tasks/data
+      - ./tasks/audio:/app/tasks/audio
+      - ./meetings/recordings:/app/meetings/recordings
+      - ./src:/app/src  # Para hot reload en desarrollo
+    networks:
+      - jarvi-network
+    restart: unless-stopped
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 & node server-enhanced-notes.js & node server-meetings.js & node server-tasks.js & node server-voice-notes.js & wait"
+
+networks:
+  jarvi-network:
+    driver: bridge

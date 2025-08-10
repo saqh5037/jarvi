@@ -1,0 +1,18 @@
+{
+  "id": 1754727057,
+  "title": "Tarea #3",
+  "description": "Descripción de la tarea 3",
+  "priority": "medium",
+  "completed": true,
+  "category": "work",
+  "project": "JARVI",
+  "dueDate": "2025-08-09T08:10:34",
+  "tags": [
+    "tag3"
+  ],
+  "sender": {
+    "id": 871556715,
+    "name": "Samuel"
+  },
+  "timestamp": "2025-08-09T08:10:34.3NZ"
+}

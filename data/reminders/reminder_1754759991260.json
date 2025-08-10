@@ -1,0 +1,13 @@
+{
+  "id": 1754759991260,
+  "content": "Acuérdeme marcarle a mamá a las tres de la tarde del día de hoy.",
+  "type": "voice",
+  "audioFile": "reminder_871556715_1754759991260.ogg",
+  "duration": 5,
+  "sender": {
+    "name": "Samuel",
+    "id": 871556715
+  },
+  "timestamp": "2025-08-09T17:19:52.619Z",
+  "status": "pending"
+}

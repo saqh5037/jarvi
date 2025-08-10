@@ -1,0 +1,632 @@
+import express from 'express';
+import cors from 'cors';
+import { promises as fs } from 'fs';
+import path from 'path';
+import { Server } from 'socket.io';
+import http from 'http';
+import cron from 'node-cron';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: true,
+    methods: ["GET", "POST", "PUT", "DELETE"]
+  }
+});
+
+// Configuración
+const PORT = 3003;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyAGlwn2nDECzKnqRYqHo4hVUlNqGMsp1mw';
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// Servir archivos de audio estáticos
+app.use('/audio', express.static(path.join(__dirname, 'tasks', 'audio')));
+
+// Directorio de datos
+const dataDir = path.join(__dirname, 'tasks', 'data');
+const audioDir = path.join(__dirname, 'tasks', 'audio');
+const tasksFile = path.join(dataDir, 'tasks.json');
+const categoriesFile = path.join(dataDir, 'categories.json');
+const remindersFile = path.join(dataDir, 'reminders.json');
+
+// Asegurar que existe el directorio
+async function ensureDataDir() {
+  try {
+    await fs.mkdir(path.join(__dirname, 'tasks'), { recursive: true });
+    await fs.mkdir(dataDir, { recursive: true });
+    await fs.mkdir(audioDir, { recursive: true });
+    
+    // Inicializar archivos si no existen
+    try {
+      await fs.access(tasksFile);
+    } catch {
+      await fs.writeFile(tasksFile, JSON.stringify([]), 'utf8');
+    }
+    
+    try {
+      await fs.access(categoriesFile);
+    } catch {
+      const defaultCategories = [
+        { id: 'personal', name: 'Personal', color: '#3B82F6', icon: '👤' },
+        { id: 'work', name: 'Trabajo', color: '#10B981', icon: '💼' },
+        { id: 'shopping', name: 'Compras', color: '#F59E0B', icon: '🛒' },
+        { id: 'health', name: 'Salud', color: '#EF4444', icon: '🏥' },
+        { id: 'education', name: 'Educación', color: '#8B5CF6', icon: '📚' },
+        { id: 'home', name: 'Hogar', color: '#EC4899', icon: '🏠' }
+      ];
+      await fs.writeFile(categoriesFile, JSON.stringify(defaultCategories), 'utf8');
+    }
+    
+    try {
+      await fs.access(remindersFile);
+    } catch {
+      await fs.writeFile(remindersFile, JSON.stringify([]), 'utf8');
+    }
+  } catch (error) {
+    console.error('Error creando directorios:', error);
+  }
+}
+
+// Modelo de Tarea
+class Task {
+  constructor(data) {
+    this.id = data.id || Date.now().toString();
+    this.title = data.title;
+    this.description = data.description || '';
+    this.category = data.category || 'personal';
+    this.priority = data.priority || 'medium'; // low, medium, high, urgent
+    this.status = data.status || 'pending'; // pending, in_progress, completed, cancelled
+    this.dueDate = data.dueDate || null;
+    this.reminder = data.reminder || null;
+    this.recurring = data.recurring || null; // daily, weekly, monthly
+    this.tags = data.tags || [];
+    this.attachments = data.attachments || [];
+    this.notes = data.notes || [];
+    this.createdAt = data.createdAt || new Date().toISOString();
+    this.updatedAt = data.updatedAt || new Date().toISOString();
+    this.completedAt = data.completedAt || null;
+    this.createdBy = data.createdBy || 'user';
+    this.assignedTo = data.assignedTo || null;
+    this.subtasks = data.subtasks || [];
+    this.estimatedTime = data.estimatedTime || null; // en minutos
+    this.audioFile = data.audioFile || null; // archivo de audio de Telegram
+    this.audioDuration = data.audioDuration || null; // duración del audio en segundos
+    this.actualTime = data.actualTime || null; // en minutos
+    this.location = data.location || null;
+  }
+}
+
+// ==================== FUNCIONES AUXILIARES ====================
+
+// Parsear texto natural a tarea usando Gemini
+async function parseNaturalLanguageToTask(text) {
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    
+    const prompt = `
+Analiza el siguiente texto y extrae la información para crear una tarea. 
+Responde SOLO con un objeto JSON válido sin texto adicional.
+
+Texto: "${text}"
+
+Extrae la siguiente información:
+- title: título breve de la tarea
+- description: descripción detallada (si la hay)
+- category: una de estas categorías: personal, work, shopping, health, education, home
+- priority: low, medium, high, o urgent (basado en palabras como urgente, importante, etc.)
+- dueDate: fecha límite en formato ISO si se menciona (hoy, mañana, lunes, etc.)
+- tags: array de palabras clave relevantes
+- location: lugar si se menciona
+
+Ejemplo de respuesta:
+{
+  "title": "Comprar huevos",
+  "description": "Ir al mercado a comprar huevos",
+  "category": "shopping",
+  "priority": "medium",
+  "dueDate": null,
+  "tags": ["mercado", "huevos", "compras"],
+  "location": "mercado"
+}
+`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const jsonText = response.text().replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    
+    const taskData = JSON.parse(jsonText);
+    
+    // Ajustar fecha si es relativa
+    if (taskData.dueDate) {
+      const today = new Date();
+      const text_lower = text.toLowerCase();
+      
+      if (text_lower.includes('hoy')) {
+        taskData.dueDate = today.toISOString();
+      } else if (text_lower.includes('mañana')) {
+        today.setDate(today.getDate() + 1);
+        taskData.dueDate = today.toISOString();
+      } else if (text_lower.includes('pasado mañana')) {
+        today.setDate(today.getDate() + 2);
+        taskData.dueDate = today.toISOString();
+      }
+    }
+    
+    return taskData;
+  } catch (error) {
+    console.error('Error parseando texto natural:', error);
+    // Fallback básico
+    return {
+      title: text.substring(0, 50),
+      description: text,
+      category: 'personal',
+      priority: 'medium',
+      tags: text.split(' ').filter(w => w.length > 4)
+    };
+  }
+}
+
+// Verificar tareas vencidas
+async function checkOverdueTasks() {
+  try {
+    const tasksData = await fs.readFile(tasksFile, 'utf8');
+    const tasks = JSON.parse(tasksData);
+    const now = new Date();
+    const overdueТasks = [];
+    
+    for (const task of tasks) {
+      if (task.status === 'pending' && task.dueDate) {
+        const dueDate = new Date(task.dueDate);
+        if (dueDate < now) {
+          overdueТasks.push(task);
+          
+          // Emitir notificación
+          io.emit('task-overdue', {
+            task,
+            message: `⚠️ Tarea vencida: ${task.title}`,
+            overdue: Math.floor((now - dueDate) / (1000 * 60 * 60)) // horas vencidas
+          });
+        }
+      }
+    }
+    
+    return overdueТasks;
+  } catch (error) {
+    console.error('Error verificando tareas vencidas:', error);
+    return [];
+  }
+}
+
+// Enviar recordatorios
+async function sendReminders() {
+  try {
+    const tasksData = await fs.readFile(tasksFile, 'utf8');
+    const tasks = JSON.parse(tasksData);
+    const now = new Date();
+    
+    for (const task of tasks) {
+      if (task.status === 'pending' && task.reminder) {
+        const reminderTime = new Date(task.reminder);
+        const timeDiff = reminderTime - now;
+        
+        // Si el recordatorio es en los próximos 5 minutos
+        if (timeDiff > 0 && timeDiff <= 5 * 60 * 1000) {
+          io.emit('task-reminder', {
+            task,
+            message: `🔔 Recordatorio: ${task.title}`,
+            timeUntilDue: task.dueDate ? new Date(task.dueDate) - now : null
+          });
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error enviando recordatorios:', error);
+  }
+}
+
+// ==================== RUTAS API ====================
+
+// Obtener todas las tareas
+app.get('/api/tasks', async (req, res) => {
+  try {
+    const { status, category, priority, search } = req.query;
+    let tasks = JSON.parse(await fs.readFile(tasksFile, 'utf8'));
+    
+    // Filtros
+    if (status) {
+      tasks = tasks.filter(t => t.status === status);
+    }
+    if (category) {
+      tasks = tasks.filter(t => t.category === category);
+    }
+    if (priority) {
+      tasks = tasks.filter(t => t.priority === priority);
+    }
+    if (search) {
+      const searchLower = search.toLowerCase();
+      tasks = tasks.filter(t => 
+        t.title.toLowerCase().includes(searchLower) ||
+        t.description.toLowerCase().includes(searchLower) ||
+        t.tags.some(tag => tag.toLowerCase().includes(searchLower))
+      );
+    }
+    
+    // Ordenar por prioridad y fecha
+    tasks.sort((a, b) => {
+      const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
+      if (a.priority !== b.priority) {
+        return priorityOrder[a.priority] - priorityOrder[b.priority];
+      }
+      if (a.dueDate && b.dueDate) {
+        return new Date(a.dueDate) - new Date(b.dueDate);
+      }
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+    
+    res.json({ success: true, tasks });
+  } catch (error) {
+    console.error('Error obteniendo tareas:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Obtener una tarea
+app.get('/api/tasks/:id', async (req, res) => {
+  try {
+    const tasks = JSON.parse(await fs.readFile(tasksFile, 'utf8'));
+    const task = tasks.find(t => t.id === req.params.id);
+    
+    if (!task) {
+      return res.status(404).json({ success: false, error: 'Tarea no encontrada' });
+    }
+    
+    res.json({ success: true, task });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Crear tarea
+app.post('/api/tasks', async (req, res) => {
+  try {
+    const tasks = JSON.parse(await fs.readFile(tasksFile, 'utf8'));
+    const newTask = new Task(req.body);
+    
+    tasks.push(newTask);
+    await fs.writeFile(tasksFile, JSON.stringify(tasks, null, 2));
+    
+    io.emit('task-created', newTask);
+    
+    res.json({ success: true, task: newTask });
+  } catch (error) {
+    console.error('Error creando tarea:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Crear tarea desde texto natural
+app.post('/api/tasks/natural', async (req, res) => {
+  try {
+    const { text, source = 'api', metadata } = req.body;
+    
+    if (!text) {
+      return res.status(400).json({ success: false, error: 'Texto requerido' });
+    }
+    
+    // Parsear el texto natural
+    const taskData = await parseNaturalLanguageToTask(text);
+    taskData.createdBy = source;
+    
+    // Si viene con metadata de audio (desde Telegram)
+    if (metadata && metadata.audioFile) {
+      taskData.audioFile = metadata.audioFile;
+      taskData.audioDuration = metadata.duration;
+      
+      // Copiar el archivo de audio al directorio de tareas si existe
+      if (metadata.audioFile) {
+        const sourceAudioPath = path.join(__dirname, 'voice-notes', metadata.audioFile);
+        const destAudioPath = path.join(audioDir, metadata.audioFile);
+        
+        try {
+          // Verificar si el archivo fuente existe
+          await fs.access(sourceAudioPath);
+          // Copiar el archivo
+          await fs.copyFile(sourceAudioPath, destAudioPath);
+          console.log(`Audio copiado: ${metadata.audioFile}`);
+        } catch (err) {
+          console.log(`Archivo de audio no encontrado en voice-notes, se usará referencia: ${metadata.audioFile}`);
+        }
+      }
+    }
+    
+    // Crear la tarea
+    const tasks = JSON.parse(await fs.readFile(tasksFile, 'utf8'));
+    const newTask = new Task(taskData);
+    
+    tasks.push(newTask);
+    await fs.writeFile(tasksFile, JSON.stringify(tasks, null, 2));
+    
+    io.emit('task-created', {
+      ...newTask,
+      notification: `✅ Tarea creada: ${newTask.title}`
+    });
+    
+    res.json({ success: true, task: newTask });
+  } catch (error) {
+    console.error('Error creando tarea desde texto:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Actualizar tarea
+app.put('/api/tasks/:id', async (req, res) => {
+  try {
+    let tasks = JSON.parse(await fs.readFile(tasksFile, 'utf8'));
+    const taskIndex = tasks.findIndex(t => t.id === req.params.id);
+    
+    if (taskIndex === -1) {
+      return res.status(404).json({ success: false, error: 'Tarea no encontrada' });
+    }
+    
+    const updatedTask = {
+      ...tasks[taskIndex],
+      ...req.body,
+      updatedAt: new Date().toISOString()
+    };
+    
+    // Si se marca como completada
+    if (req.body.status === 'completed' && tasks[taskIndex].status !== 'completed') {
+      updatedTask.completedAt = new Date().toISOString();
+    }
+    
+    tasks[taskIndex] = updatedTask;
+    await fs.writeFile(tasksFile, JSON.stringify(tasks, null, 2));
+    
+    io.emit('task-updated', updatedTask);
+    
+    res.json({ success: true, task: updatedTask });
+  } catch (error) {
+    console.error('Error actualizando tarea:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Marcar tarea como completada
+app.post('/api/tasks/:id/complete', async (req, res) => {
+  try {
+    let tasks = JSON.parse(await fs.readFile(tasksFile, 'utf8'));
+    const taskIndex = tasks.findIndex(t => t.id === req.params.id);
+    
+    if (taskIndex === -1) {
+      return res.status(404).json({ success: false, error: 'Tarea no encontrada' });
+    }
+    
+    tasks[taskIndex].status = 'completed';
+    tasks[taskIndex].completedAt = new Date().toISOString();
+    tasks[taskIndex].updatedAt = new Date().toISOString();
+    
+    if (req.body.actualTime) {
+      tasks[taskIndex].actualTime = req.body.actualTime;
+    }
+    
+    await fs.writeFile(tasksFile, JSON.stringify(tasks, null, 2));
+    
+    io.emit('task-completed', {
+      task: tasks[taskIndex],
+      notification: `✅ Tarea completada: ${tasks[taskIndex].title}`
+    });
+    
+    res.json({ success: true, task: tasks[taskIndex] });
+  } catch (error) {
+    console.error('Error completando tarea:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Eliminar tarea
+app.delete('/api/tasks/:id', async (req, res) => {
+  try {
+    let tasks = JSON.parse(await fs.readFile(tasksFile, 'utf8'));
+    const taskToDelete = tasks.find(t => t.id === req.params.id);
+    
+    if (!taskToDelete) {
+      return res.status(404).json({ success: false, error: 'Tarea no encontrada' });
+    }
+    
+    tasks = tasks.filter(t => t.id !== req.params.id);
+    await fs.writeFile(tasksFile, JSON.stringify(tasks, null, 2));
+    
+    io.emit('task-deleted', {
+      id: req.params.id,
+      notification: `🗑️ Tarea eliminada: ${taskToDelete.title}`
+    });
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error eliminando tarea:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Obtener estadísticas
+app.get('/api/stats', async (req, res) => {
+  try {
+    const tasks = JSON.parse(await fs.readFile(tasksFile, 'utf8'));
+    const now = new Date();
+    
+    const stats = {
+      total: tasks.length,
+      pending: tasks.filter(t => t.status === 'pending').length,
+      inProgress: tasks.filter(t => t.status === 'in_progress').length,
+      completed: tasks.filter(t => t.status === 'completed').length,
+      overdue: tasks.filter(t => 
+        t.status === 'pending' && 
+        t.dueDate && 
+        new Date(t.dueDate) < now
+      ).length,
+      dueToday: tasks.filter(t => {
+        if (!t.dueDate || t.status === 'completed') return false;
+        const dueDate = new Date(t.dueDate);
+        return dueDate.toDateString() === now.toDateString();
+      }).length,
+      byCategory: {},
+      byPriority: {
+        urgent: tasks.filter(t => t.priority === 'urgent' && t.status !== 'completed').length,
+        high: tasks.filter(t => t.priority === 'high' && t.status !== 'completed').length,
+        medium: tasks.filter(t => t.priority === 'medium' && t.status !== 'completed').length,
+        low: tasks.filter(t => t.priority === 'low' && t.status !== 'completed').length
+      },
+      completionRate: tasks.length > 0 
+        ? Math.round((tasks.filter(t => t.status === 'completed').length / tasks.length) * 100)
+        : 0
+    };
+    
+    // Estadísticas por categoría
+    const categories = JSON.parse(await fs.readFile(categoriesFile, 'utf8'));
+    categories.forEach(cat => {
+      stats.byCategory[cat.id] = tasks.filter(t => t.category === cat.id).length;
+    });
+    
+    res.json({ success: true, stats });
+  } catch (error) {
+    console.error('Error obteniendo estadísticas:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Obtener categorías
+app.get('/api/categories', async (req, res) => {
+  try {
+    const categories = JSON.parse(await fs.readFile(categoriesFile, 'utf8'));
+    res.json({ success: true, categories });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Webhook para Telegram (para recibir mensajes de voz)
+app.post('/api/telegram/webhook', async (req, res) => {
+  try {
+    const { message } = req.body;
+    
+    if (message && message.text) {
+      // Procesar mensaje de texto
+      const taskData = await parseNaturalLanguageToTask(message.text);
+      taskData.createdBy = 'telegram';
+      
+      const tasks = JSON.parse(await fs.readFile(tasksFile, 'utf8'));
+      const newTask = new Task(taskData);
+      
+      tasks.push(newTask);
+      await fs.writeFile(tasksFile, JSON.stringify(tasks, null, 2));
+      
+      io.emit('task-created', {
+        ...newTask,
+        notification: `📱 Tarea creada desde Telegram: ${newTask.title}`
+      });
+      
+      res.json({ 
+        success: true, 
+        message: `✅ Tarea creada: ${newTask.title}`
+      });
+    } else {
+      res.json({ success: false, message: 'Mensaje no procesable' });
+    }
+  } catch (error) {
+    console.error('Error procesando webhook de Telegram:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ==================== WEBSOCKET ====================
+
+io.on('connection', (socket) => {
+  console.log('Cliente conectado:', socket.id);
+  
+  socket.on('check-overdue', async () => {
+    const overdueTasks = await checkOverdueTasks();
+    socket.emit('overdue-tasks', overdueTasks);
+  });
+  
+  socket.on('disconnect', () => {
+    console.log('Cliente desconectado:', socket.id);
+  });
+});
+
+// ==================== CRON JOBS ====================
+
+// Verificar tareas vencidas cada 5 minutos
+cron.schedule('*/5 * * * *', async () => {
+  console.log('Verificando tareas vencidas...');
+  await checkOverdueTasks();
+});
+
+// Enviar recordatorios cada minuto
+cron.schedule('* * * * *', async () => {
+  await sendReminders();
+});
+
+// Limpiar tareas completadas antiguas (más de 30 días) - una vez al día
+cron.schedule('0 0 * * *', async () => {
+  try {
+    let tasks = JSON.parse(await fs.readFile(tasksFile, 'utf8'));
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const initialCount = tasks.length;
+    tasks = tasks.filter(t => {
+      if (t.status === 'completed' && t.completedAt) {
+        return new Date(t.completedAt) > thirtyDaysAgo;
+      }
+      return true;
+    });
+    
+    if (tasks.length < initialCount) {
+      await fs.writeFile(tasksFile, JSON.stringify(tasks, null, 2));
+      console.log(`Limpiadas ${initialCount - tasks.length} tareas antiguas`);
+    }
+  } catch (error) {
+    console.error('Error limpiando tareas antiguas:', error);
+  }
+});
+
+// ==================== INICIALIZACIÓN ====================
+
+async function init() {
+  await ensureDataDir();
+  
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`
+╔══════════════════════════════════════════╗
+║     JARVI TASKS SERVER                  ║
+║     Servidor de Tareas Inteligente      ║
+╠══════════════════════════════════════════╣
+║  Puerto: ${PORT}                           ║
+║  WebSocket: Activo                      ║
+║  Cron Jobs: Activos                     ║
+║  IA: Gemini Integrado                   ║
+╚══════════════════════════════════════════╝
+    `);
+    
+    // Verificar tareas vencidas al iniciar
+    checkOverdueTasks();
+  });
+}
+
+init().catch(console.error);
+
+export { app, io };

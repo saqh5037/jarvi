@@ -1,0 +1,68 @@
+# Dockerfile optimizado para JARVI
+FROM node:18-slim
+
+# Instalar dependencias del sistema
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    ffmpeg \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Crear directorio de trabajo
+WORKDIR /app
+
+# Copiar archivos de configuración
+COPY package*.json ./
+
+# Instalar dependencias
+RUN npm install
+
+# Copiar código fuente
+COPY . .
+
+# Crear directorios necesarios
+RUN mkdir -p \
+    /app/voice-notes \
+    /app/data/reminders \
+    /app/data/todos \
+    /app/data/meetings \
+    /app/data/interests \
+    /app/tasks/data \
+    /app/tasks/audio \
+    /app/meetings/recordings
+
+# Exponer puertos
+EXPOSE 5173 3001 3002 3003 3004
+
+# Script de inicio
+RUN echo '#!/bin/bash\n\
+echo "🚀 Starting JARVI services..."\n\
+echo "=========================================="\n\
+\n\
+# Iniciar servicios backend\n\
+node server-enhanced-notes.js &\n\
+echo "✅ Enhanced Notes API started on port 3001"\n\
+\n\
+node server-meetings.js &\n\
+echo "✅ Meetings API started on port 3002"\n\
+\n\
+node server-tasks.js &\n\
+echo "✅ Tasks API started on port 3003"\n\
+\n\
+node server-voice-notes.js &\n\
+echo "✅ Voice Notes API started on port 3004"\n\
+\n\
+# Iniciar bot de Telegram si está configurado\n\
+if [ -n "$TELEGRAM_BOT_TOKEN" ]; then\n\
+    node telegram-bot.js &\n\
+    echo "✅ Telegram Bot started"\n\
+fi\n\
+\n\
+# Iniciar frontend\n\
+echo "🌐 Starting frontend on port 5173..."\n\
+npm run dev -- --host 0.0.0.0\n\
+' > /app/start.sh && chmod +x /app/start.sh
+
+CMD ["/app/start.sh"]

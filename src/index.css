@@ -1,0 +1,131 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&family=Exo+2:wght@300;400;500;600;700&family=Audiowide&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --jarvi-primary: 0 229 255;
+    --jarvi-secondary: 10 14 39;
+    --jarvi-accent: 255 107 53;
+    --jarvi-glow: 0 255 255;
+  }
+
+  body {
+    color: #374151;
+    font-family: system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: #f9fafb;
+    min-height: 100vh;
+    margin: 0;
+  }
+  
+  /* Estilo específico para componentes que necesiten el tema oscuro */
+  .dark-theme {
+    color: white;
+    background-color: #0A0E27;
+    background-image: 
+      radial-gradient(circle at 20% 50%, rgba(0, 229, 255, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 80% 50%, rgba(255, 107, 53, 0.05) 0%, transparent 50%),
+      radial-gradient(circle at 50% 100%, rgba(0, 255, 255, 0.05) 0%, transparent 50%);
+  }
+}
+
+@layer components {
+  .jarvi-glow {
+    box-shadow: 
+      0 0 20px rgba(0, 229, 255, 0.5),
+      inset 0 0 20px rgba(0, 229, 255, 0.1);
+  }
+
+  .jarvi-border {
+    @apply border border-jarvi-blue/30;
+    background: linear-gradient(135deg, rgba(0, 229, 255, 0.05) 0%, transparent 100%);
+  }
+
+  .jarvi-glass {
+    @apply backdrop-blur-md bg-white/5;
+    border: 1px solid rgba(0, 229, 255, 0.2);
+  }
+
+  .jarvi-text-glow {
+    text-shadow: 0 0 10px rgba(0, 229, 255, 0.8);
+  }
+
+  .jarvi-grid {
+    background-image: 
+      linear-gradient(rgba(0, 229, 255, 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 229, 255, 0.1) 1px, transparent 1px);
+    background-size: 50px 50px;
+  }
+}
+
+@layer utilities {
+  .animate-scan {
+    animation: scan 3s linear infinite;
+  }
+
+  @keyframes scan {
+    0% {
+      transform: translateY(-100%);
+    }
+    100% {
+      transform: translateY(100%);
+    }
+  }
+
+  .animate-flicker {
+    animation: flicker 2s linear infinite;
+  }
+
+  @keyframes flicker {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.8;
+    }
+  }
+
+  .animate-pulse-slow {
+    animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .animate-spin-slow {
+    animation: spin 8s linear infinite;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .text-neon {
+    text-shadow: 0 0 5px #00E5FF, 0 0 10px #00E5FF, 0 0 15px #00E5FF, 0 0 20px #00E5FF;
+  }
+
+  .text-neon-accent {
+    text-shadow: 0 0 5px #FF6B35, 0 0 10px #FF6B35, 0 0 15px #FF6B35;
+  }
+
+  .shadow-neon {
+    box-shadow: 0 0 20px rgba(0, 229, 255, 0.5), 0 0 40px rgba(0, 229, 255, 0.3);
+  }
+
+  .shadow-neon-accent {
+    box-shadow: 0 0 20px rgba(255, 107, 53, 0.5), 0 0 40px rgba(255, 107, 53, 0.3);
+  }
+
+  .hud-corner-tl {
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%);
+  }
+
+  .hud-corner-br {
+    clip-path: polygon(20px 0, 100% 0, 100% 100%, 0 100%, 0 20px);
+  }
+}

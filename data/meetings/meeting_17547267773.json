@@ -1,0 +1,21 @@
+{
+  "id": 17547267773,
+  "title": "Daily Standup - Equipo Dev",
+  "duration": 900,
+  "participants": [
+    "Samuel",
+    "María",
+    "Carlos"
+  ],
+  "transcription": "Discutimos el progreso del proyecto. Samuel completó el backend. María está trabajando en el frontend. Carlos está haciendo pruebas.",
+  "keyPoints": [
+    "Backend completado",
+    "Frontend en progreso",
+    "QA iniciando"
+  ],
+  "sender": {
+    "id": 871556715,
+    "name": "Samuel"
+  },
+  "timestamp": "2025-08-09T08:06:17.3NZ"
+}

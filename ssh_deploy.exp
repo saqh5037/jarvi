@@ -1,0 +1,41 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password "Tesoro86*"
+set host "192.168.1.141"
+set user "samuelquiroz"
+
+# Create directory
+spawn ssh $user@$host "mkdir -p /Users/samuelquiroz/Documents/jarvis"
+expect {
+    "password:" {
+        send "$password\r"
+        expect eof
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+        expect eof
+    }
+}
+
+# Copy files
+spawn scp jarvi-deploy.tar.gz $user@$host:/Users/samuelquiroz/Documents/jarvis/
+expect {
+    "password:" {
+        send "$password\r"
+        expect eof
+    }
+}
+
+# Extract files
+spawn ssh $user@$host "cd /Users/samuelquiroz/Documents/jarvis && tar -xzf jarvi-deploy.tar.gz && rm jarvi-deploy.tar.gz && chmod +x *.sh && echo 'Files extracted successfully'"
+expect {
+    "password:" {
+        send "$password\r"
+        expect eof
+    }
+}
+
+puts "\n✅ Deployment completed successfully!"

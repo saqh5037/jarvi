@@ -1,0 +1,86 @@
+version: '3.9'
+
+services:
+  # Frontend y servicios principales
+  jarvi-app:
+    build: .
+    container_name: jarvi-main
+    ports:
+      - "5173:5173"  # Frontend
+      - "3001:3001"  # Enhanced Notes API
+      - "3002:3002"  # Meetings API  
+      - "3003:3003"  # Tasks API
+      - "3004:3004"  # Voice Notes API
+    environment:
+      - NODE_ENV=production
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
+    volumes:
+      - ./voice-notes:/app/voice-notes
+      - ./tasks/data:/app/tasks/data
+      - ./tasks/audio:/app/tasks/audio
+      - ./meetings/recordings:/app/meetings/recordings
+      - ./.env:/app/.env
+    depends_on:
+      - mongodb
+      - redis
+    restart: unless-stopped
+    networks:
+      - jarvi-network
+
+  # Base de datos MongoDB
+  mongodb:
+    image: mongo:7.0
+    container_name: jarvi-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=jarvi
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD:-jarvi_secure_password}
+      - MONGO_INITDB_DATABASE=jarvi_db
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    restart: unless-stopped
+    networks:
+      - jarvi-network
+
+  # Cache Redis
+  redis:
+    image: redis:7-alpine
+    container_name: jarvi-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - jarvi-network
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: jarvi-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - jarvi-app
+    restart: unless-stopped
+    networks:
+      - jarvi-network
+
+volumes:
+  mongodb_data:
+  mongodb_config:
+  redis_data:
+
+networks:
+  jarvi-network:
+    driver: bridge

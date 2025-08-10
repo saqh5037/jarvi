@@ -1,0 +1,642 @@
+{
+  "totalCost": 0,
+  "dailyCosts": {
+    "2025-08-09": 0,
+    "2025-08-10": 0
+  },
+  "monthlyCosts": {
+    "2025-08": 0
+  },
+  "apiUsage": {
+    "openai": {
+      "calls": 0,
+      "audioMinutes": 0,
+      "cost": 0
+    },
+    "gemini": {
+      "calls": 36,
+      "tokens": 25353,
+      "cost": 0
+    },
+    "claude": {
+      "calls": 0,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cost": 0
+    }
+  },
+  "transactions": [
+    {
+      "id": 1754750860944,
+      "timestamp": "2025-08-09T14:47:40.944Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 319,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754750748328.ogg",
+        "language": "es",
+        "transcriptionLength": 76
+      }
+    },
+    {
+      "id": 1754750876740,
+      "timestamp": "2025-08-09T14:47:56.740Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 365,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754750373754.ogg",
+        "language": "es",
+        "transcriptionLength": 122
+      }
+    },
+    {
+      "id": 1754750949809,
+      "timestamp": "2025-08-09T14:49:09.809Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 351,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754750928641.ogg",
+        "language": "es",
+        "transcriptionLength": 108
+      }
+    },
+    {
+      "id": 1754751045993,
+      "timestamp": "2025-08-09T14:50:45.993Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 6439,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754751007796.ogg",
+        "language": "es",
+        "transcriptionLength": 6196
+      }
+    },
+    {
+      "id": 1754752688400,
+      "timestamp": "2025-08-09T15:18:08.400Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 555,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754752627992.ogg",
+        "language": "es",
+        "transcriptionLength": 312
+      }
+    },
+    {
+      "id": 1754754386533,
+      "timestamp": "2025-08-09T15:46:26.533Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 775,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754754383475.ogg",
+        "language": "es",
+        "transcriptionLength": 532
+      }
+    },
+    {
+      "id": 1754755445490,
+      "timestamp": "2025-08-09T16:04:05.490Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 365,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754755443495.ogg",
+        "language": "es",
+        "transcriptionLength": 122
+      }
+    },
+    {
+      "id": 1754759992616,
+      "timestamp": "2025-08-09T17:19:52.616Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 307,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "reminder_871556715_1754759991260.ogg",
+        "language": "es",
+        "transcriptionLength": 64
+      }
+    },
+    {
+      "id": 1754760490854,
+      "timestamp": "2025-08-09T17:28:10.854Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 282,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "reminder_871556715_1754760489599.ogg",
+        "language": "es",
+        "transcriptionLength": 39
+      }
+    },
+    {
+      "id": 1754760747953,
+      "timestamp": "2025-08-09T17:32:27.953Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 324,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "todo_871556715_1754760746502.ogg",
+        "language": "es",
+        "transcriptionLength": 81
+      }
+    },
+    {
+      "id": 1754760943935,
+      "timestamp": "2025-08-09T17:35:43.935Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 754,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754760940583.ogg",
+        "language": "es",
+        "transcriptionLength": 511
+      }
+    },
+    {
+      "id": 1754761005754,
+      "timestamp": "2025-08-09T17:36:45.754Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 343,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "reminder_871556715_1754761004381.ogg",
+        "language": "es",
+        "transcriptionLength": 100
+      }
+    },
+    {
+      "id": 1754761088000,
+      "timestamp": "2025-08-09T17:38:08.000Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 404,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "reminder_871556715_1754761086213.ogg",
+        "language": "es",
+        "transcriptionLength": 161
+      }
+    },
+    {
+      "id": 1754762115445,
+      "timestamp": "2025-08-09T17:55:15.445Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 808,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754762112285.ogg",
+        "language": "es",
+        "transcriptionLength": 565
+      }
+    },
+    {
+      "id": 1754762406920,
+      "timestamp": "2025-08-09T18:00:06.920Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 306,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "todo_871556715_1754762405505.ogg",
+        "language": "es",
+        "transcriptionLength": 63
+      }
+    },
+    {
+      "id": 1754762505143,
+      "timestamp": "2025-08-09T18:01:45.143Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 732,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754762502215.ogg",
+        "language": "es",
+        "transcriptionLength": 489
+      }
+    },
+    {
+      "id": 1754762518959,
+      "timestamp": "2025-08-09T18:01:58.959Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 257,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754762517224.ogg",
+        "language": "es",
+        "transcriptionLength": 14
+      }
+    },
+    {
+      "id": 1754762616687,
+      "timestamp": "2025-08-09T18:03:36.687Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 713,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754762613730.ogg",
+        "language": "es",
+        "transcriptionLength": 470
+      }
+    },
+    {
+      "id": 1754762995463,
+      "timestamp": "2025-08-09T18:09:55.463Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 348,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "todo_871556715_1754762993554.ogg",
+        "language": "es",
+        "transcriptionLength": 105
+      }
+    },
+    {
+      "id": 1754764162878,
+      "timestamp": "2025-08-09T18:29:22.878Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 266,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754764161198.ogg",
+        "language": "es",
+        "transcriptionLength": 23
+      }
+    },
+    {
+      "id": 1754764228855,
+      "timestamp": "2025-08-09T18:30:28.855Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 302,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754764227294.ogg",
+        "language": "es",
+        "transcriptionLength": 59
+      }
+    },
+    {
+      "id": 1754764475571,
+      "timestamp": "2025-08-09T18:34:35.571Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 313,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754764473966.ogg",
+        "language": "es",
+        "transcriptionLength": 70
+      }
+    },
+    {
+      "id": 1754765361574,
+      "timestamp": "2025-08-09T18:49:21.574Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 701,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754765349537.ogg",
+        "language": "es",
+        "transcriptionLength": 458
+      }
+    },
+    {
+      "id": 1754765975513,
+      "timestamp": "2025-08-09T18:59:35.513Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 926,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754765958589.ogg",
+        "language": "es",
+        "transcriptionLength": 683
+      }
+    },
+    {
+      "id": 1754766956097,
+      "timestamp": "2025-08-09T19:15:56.097Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 567,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754766921378.ogg",
+        "language": "es",
+        "transcriptionLength": 324
+      }
+    },
+    {
+      "id": 1754769217206,
+      "timestamp": "2025-08-09T19:53:37.206Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 651,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754769186084.ogg",
+        "language": "es",
+        "transcriptionLength": 408
+      }
+    },
+    {
+      "id": 1754770682586,
+      "timestamp": "2025-08-09T20:18:02.586Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 292,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754770681001.ogg",
+        "language": "es",
+        "transcriptionLength": 49
+      }
+    },
+    {
+      "id": 1754771463124,
+      "timestamp": "2025-08-09T20:31:03.124Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 811,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754771459898.ogg",
+        "language": "es",
+        "transcriptionLength": 568
+      }
+    },
+    {
+      "id": 1754774197371,
+      "timestamp": "2025-08-09T21:16:37.371Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 1442,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754774192579.ogg",
+        "language": "es",
+        "transcriptionLength": 1199
+      }
+    },
+    {
+      "id": 1754774367571,
+      "timestamp": "2025-08-09T21:19:27.571Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 1218,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754774363395.ogg",
+        "language": "es",
+        "transcriptionLength": 975
+      }
+    },
+    {
+      "id": 1754776753157,
+      "timestamp": "2025-08-09T21:59:13.157Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 668,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754776750214.ogg",
+        "language": "es",
+        "transcriptionLength": 425
+      }
+    },
+    {
+      "id": 1754777179125,
+      "timestamp": "2025-08-09T22:06:19.125Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 905,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754777175222.ogg",
+        "language": "es",
+        "transcriptionLength": 662
+      }
+    },
+    {
+      "id": 1754802099103,
+      "timestamp": "2025-08-10T05:01:39.103Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 270,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754802096894.ogg",
+        "language": "es",
+        "transcriptionLength": 27
+      }
+    },
+    {
+      "id": 1754802248247,
+      "timestamp": "2025-08-10T05:04:08.247Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 286,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "reminder_871556715_1754802246929.ogg",
+        "language": "es",
+        "transcriptionLength": 43
+      }
+    },
+    {
+      "id": 1754802284929,
+      "timestamp": "2025-08-10T05:04:44.929Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 294,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "todo_871556715_1754802283538.ogg",
+        "language": "es",
+        "transcriptionLength": 51
+      }
+    },
+    {
+      "id": 1754802470082,
+      "timestamp": "2025-08-10T05:07:50.082Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 694,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754802466937.ogg",
+        "language": "es",
+        "transcriptionLength": 451
+      }
+    }
+  ]
+}

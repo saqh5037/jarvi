@@ -1,0 +1,13 @@
+{
+  "id": 1754802246929,
+  "content": "Recuérdame mañana para levantarme temprano.",
+  "type": "voice",
+  "audioFile": "reminder_871556715_1754802246929.ogg",
+  "duration": 3,
+  "sender": {
+    "name": "Samuel",
+    "id": 871556715
+  },
+  "timestamp": "2025-08-10T05:04:08.248Z",
+  "status": "pending"
+}

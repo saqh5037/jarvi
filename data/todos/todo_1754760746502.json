@@ -1,0 +1,14 @@
+{
+  "id": 1754760746502,
+  "title": "Quiero ir a Sams hoy a las dos de la tarde para comprar un televisor 50 pulgadas.",
+  "type": "voice",
+  "audioFile": "todo_871556715_1754760746502.ogg",
+  "duration": 6,
+  "priority": "normal",
+  "status": "pending",
+  "sender": {
+    "name": "Samuel",
+    "id": 871556715
+  },
+  "timestamp": "2025-08-09T17:32:27.956Z"
+}

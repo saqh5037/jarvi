@@ -1,0 +1,13 @@
+{
+  "id": 1754761004381,
+  "content": "Quiero ver si este recordatorio funciona y me lo guarda directamente en la sección de recordatorios.",
+  "type": "voice",
+  "audioFile": "reminder_871556715_1754761004381.ogg",
+  "duration": 8,
+  "sender": {
+    "name": "Samuel",
+    "id": 871556715
+  },
+  "timestamp": "2025-08-09T17:36:45.756Z",
+  "status": "pending"
+}

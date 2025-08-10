@@ -1,0 +1,13 @@
+{
+  "id": 1754765450007,
+  "content": "Quiero que me recuerdes que a la una tengo que ver la lavadora.",
+  "type": "voice",
+  "audioFile": "reminder_871556715_1754765450007.ogg",
+  "duration": 4,
+  "sender": {
+    "name": "Samuel",
+    "id": 871556715
+  },
+  "timestamp": "2025-08-09T18:50:51.283Z",
+  "status": "pending"
+}

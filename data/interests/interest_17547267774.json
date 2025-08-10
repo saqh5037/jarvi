@@ -1,0 +1,19 @@
+{
+  "id": 17547267774,
+  "title": "Next.js 14 - App Router",
+  "description": "Nueva arquitectura de Next.js con Server Components",
+  "url": "https://nextjs.org/docs/app",
+  "category": "technology",
+  "type": "article",
+  "tags": [
+    "nextjs",
+    "react",
+    "web"
+  ],
+  "priority": "high",
+  "sender": {
+    "id": 871556715,
+    "name": "Samuel"
+  },
+  "timestamp": "2025-08-09T08:06:17.3NZ"
+}
