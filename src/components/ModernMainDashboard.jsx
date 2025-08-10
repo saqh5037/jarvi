@@ -24,10 +24,12 @@ import RemindersModule from './RemindersModule';
 import TodoModuleFixed from './TodoModuleFixed';
 import EnhancedMeetingsModule from './EnhancedMeetingsModule';
 import InterestsModule from './InterestsModule';
+import SettingsModule from './SettingsModule';
 
 const ModernMainDashboard = () => {
   const [activeModule, setActiveModule] = useState('dashboard');
   const [searchTerm, setSearchTerm] = useState('');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const modules = [
     { 
@@ -83,6 +85,15 @@ const ModernMainDashboard = () => {
       description: 'Artículos y contenido guardado',
       gradient: 'from-yellow-500 to-orange-600',
       stats: '24 guardados'
+    },
+    { 
+      id: 'settings', 
+      name: 'Configuración', 
+      icon: Settings, 
+      component: SettingsModule,
+      description: 'Personaliza tu sistema',
+      gradient: 'from-gray-500 to-blue-600',
+      stats: 'Sistema'
     }
   ];
 
@@ -96,173 +107,140 @@ const ModernMainDashboard = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100" style={{backgroundColor: '#f9fafb'}}>
-      {/* Header Superior */}
-      <div className="bg-white shadow-sm border-b border-gray-200">
-        <div className="px-8 py-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex" style={{backgroundColor: '#f9fafb'}}>
+      {/* Sidebar */}
+      <motion.div 
+        className={`${
+          sidebarCollapsed ? 'w-20' : 'w-72'
+        } bg-white border-r border-gray-200 flex flex-col transition-all duration-300 shadow-lg`}
+        initial={false}
+        animate={{ width: sidebarCollapsed ? 80 : 288 }}
+      >
+        {/* Header del Sidebar */}
+        <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl">
-                <Activity className="w-8 h-8 text-white" />
+            <div className={`flex items-center gap-3 ${sidebarCollapsed ? 'justify-center' : ''}`}>
+              <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex-shrink-0">
+                <Activity className="w-6 h-6 text-white" />
               </div>
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  JARVI System
-                </h1>
-                <p className="text-sm text-gray-500">Centro de Control Inteligente</p>
-              </div>
-            </div>
-
-            {/* Barra de búsqueda */}
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Buscar módulo..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 w-80 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              
-              <button className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
-                <Settings className="w-5 h-5 text-gray-600" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Navegación de Módulos - Estilo Tarjetas */}
-      <div className="px-8 py-6">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-          {filteredModules.map((module) => {
-            const Icon = module.icon;
-            const isActive = activeModule === module.id;
-            
-            return (
-              <motion.button
-                key={module.id}
-                onClick={() => setActiveModule(module.id)}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className={`relative p-4 rounded-xl transition-all ${
-                  isActive
-                    ? 'bg-white shadow-xl ring-2 ring-blue-500 ring-offset-2'
-                    : 'bg-white shadow-md hover:shadow-lg'
-                }`}
-              >
-                {/* Indicador activo */}
-                {isActive && (
-                  <motion.div
-                    layoutId="activeIndicator"
-                    className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full"
-                  />
-                )}
-                
-                <div className={`p-3 bg-gradient-to-r ${module.gradient} rounded-lg mb-3`}>
-                  <Icon className="w-6 h-6 text-white" />
-                </div>
-                
-                <h3 className="font-semibold text-gray-900 text-sm mb-1">
-                  {module.name}
-                </h3>
-                
-                <p className="text-xs text-gray-500 mb-2 line-clamp-2">
-                  {module.description}
-                </p>
-                
-                <div className="text-xs font-medium text-blue-600">
-                  {module.stats}
-                </div>
-              </motion.button>
-            );
-          })}
-        </div>
-
-        {/* Breadcrumb / Ruta actual */}
-        <div className="flex items-center gap-2 text-sm text-gray-600 mb-6">
-          <span>Inicio</span>
-          <ChevronRight className="w-4 h-4" />
-          <span className="font-medium text-gray-900">{currentModule?.name}</span>
-        </div>
-
-        {/* Contenido del Módulo Actual */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeModule}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-            className="bg-white rounded-2xl shadow-lg p-6"
-          >
-            {/* Header del módulo con acciones */}
-            <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
-              <div className="flex items-center gap-3">
-                <div className={`p-3 bg-gradient-to-r ${currentModule.gradient} rounded-xl`}>
-                  {React.createElement(currentModule.icon, {
-                    className: "w-6 h-6 text-white"
-                  })}
-                </div>
+              {!sidebarCollapsed && (
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">{currentModule.name}</h2>
-                  <p className="text-sm text-gray-500">{currentModule.description}</p>
+                  <h1 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    JARVI System
+                  </h1>
+                  <p className="text-xs text-gray-500">Control Inteligente</p>
                 </div>
-              </div>
-
-              {/* Acciones del módulo se manejan dentro de cada componente */}
+              )}
             </div>
+            <button
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className={`p-1.5 hover:bg-gray-100 rounded-lg transition-colors ${sidebarCollapsed ? 'mx-auto mt-2' : ''}`}
+            >
+              {sidebarCollapsed ? (
+                <ChevronRight className="w-5 h-5 text-gray-600" />
+              ) : (
+                <ChevronLeft className="w-5 h-5 text-gray-600" />
+              )}
+            </button>
+          </div>
+        </div>
 
-            {/* Contenido del módulo */}
-            <div className="min-h-[500px]">
+        {/* Barra de búsqueda en Sidebar */}
+        {!sidebarCollapsed && (
+          <div className="p-4 border-b border-gray-200">
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Buscar módulo..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Módulos en Sidebar */}
+        <div className="flex-1 overflow-y-auto p-3">
+          <div className="space-y-2">
+            {filteredModules.map((module) => {
+              const Icon = module.icon;
+              const isActive = activeModule === module.id;
+              
+              return (
+                <motion.button
+                  key={module.id}
+                  onClick={() => setActiveModule(module.id)}
+                  whileHover={{ x: sidebarCollapsed ? 0 : 4 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all relative group ${
+                    isActive
+                      ? 'bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200'
+                      : 'hover:bg-gray-50'
+                  }`}
+                >
+                  {/* Indicador activo */}
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeIndicator"
+                      className="absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-blue-500 to-purple-600 rounded-r-full"
+                    />
+                  )}
+                  
+                  <div className={`p-2 bg-gradient-to-r ${module.gradient} rounded-lg flex-shrink-0`}>
+                    <Icon className="w-5 h-5 text-white" />
+                  </div>
+                  
+                  {!sidebarCollapsed && (
+                    <div className="flex-1 text-left">
+                      <h3 className={`font-semibold text-sm ${isActive ? 'text-gray-900' : 'text-gray-700'}`}>
+                        {module.name}
+                      </h3>
+                      <p className="text-xs text-gray-500 line-clamp-1">
+                        {module.description}
+                      </p>
+                    </div>
+                  )}
+
+                  {!sidebarCollapsed && (
+                    <div className={`text-xs font-medium ${isActive ? 'text-blue-600' : 'text-gray-400'}`}>
+                      {module.stats}
+                    </div>
+                  )}
+
+                  {/* Tooltip para sidebar colapsado */}
+                  {sidebarCollapsed && (
+                    <div className="absolute left-full ml-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
+                      <div className="font-medium">{module.name}</div>
+                      <div className="text-xs text-gray-300">{module.stats}</div>
+                    </div>
+                  )}
+                </motion.button>
+              );
+            })}
+          </div>
+        </div>
+
+      </motion.div>
+
+      {/* Área Principal de Contenido */}
+      <div className="flex-1 flex flex-col">
+        {/* Contenido del Módulo - Sin headers redundantes */}
+        <div className="flex-1 p-6 overflow-auto bg-gradient-to-br from-gray-50 to-gray-100">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeModule}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="min-h-full"
+            >
+              {/* Contenido del módulo directamente */}
               {ModuleComponent && <ModuleComponent />}
-            </div>
-          </motion.div>
-        </AnimatePresence>
-
-        {/* Footer con estadísticas rápidas */}
-        <div className="mt-8 grid grid-cols-4 gap-4">
-          <div className="bg-white rounded-xl p-4 shadow-md">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Total Registros</p>
-                <p className="text-2xl font-bold text-gray-900">247</p>
-              </div>
-              <TrendingUp className="w-8 h-8 text-green-500" />
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl p-4 shadow-md">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Completados Hoy</p>
-                <p className="text-2xl font-bold text-gray-900">12</p>
-              </div>
-              <CheckSquare className="w-8 h-8 text-blue-500" />
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl p-4 shadow-md">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Pendientes</p>
-                <p className="text-2xl font-bold text-gray-900">34</p>
-              </div>
-              <Bell className="w-8 h-8 text-orange-500" />
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl p-4 shadow-md">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Sincronizado</p>
-                <p className="text-2xl font-bold text-green-600">✓</p>
-              </div>
-              <Activity className="w-8 h-8 text-green-500" />
-            </div>
-          </div>
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
     </div>

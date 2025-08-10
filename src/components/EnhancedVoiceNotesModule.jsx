@@ -292,78 +292,63 @@ const EnhancedVoiceNotesModule = () => {
   const transcriptionRate = totalNotes > 0 ? Math.round((transcribedNotes / totalNotes) * 100) : 0;
   
   return (
-    <div className="space-y-6">
-      {/* Header con IA Stats */}
-      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-6 text-white">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-white/20 backdrop-blur rounded-xl">
-              <Mic className="w-8 h-8" />
+    <div className="space-y-4">
+      {/* Header Horizontal Compacto */}
+      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl px-4 py-3 text-white">
+        <div className="flex items-center justify-between">
+          {/* Sección Izquierda: Ícono + Título */}
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-white/20 backdrop-blur rounded-lg">
+              <Mic className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold">Notas de Voz Inteligentes</h2>
-              <p className="text-purple-100">Transcripción automática con IA • Análisis de tokens</p>
+              <h2 className="text-lg font-bold">Notas de Voz Inteligentes</h2>
+              <p className="text-xs text-purple-100">Transcripción automática con IA</p>
             </div>
           </div>
           
+          {/* Sección Central: Estadísticas */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Brain className="w-4 h-4 text-purple-200" />
+              <span className="text-sm font-medium">{transcribedNotes}/{totalNotes} transcritas</span>
+            </div>
+            <div className="h-4 w-px bg-purple-400/30"></div>
+            <div className="flex items-center gap-2">
+              <Hash className="w-4 h-4 text-purple-200" />
+              <span className="text-sm font-medium">{aiStats.totalTokens.toLocaleString()} tokens</span>
+            </div>
+            <div className="h-4 w-px bg-purple-400/30"></div>
+            <div className="flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-purple-200" />
+              <span className="text-sm font-medium">${aiStats.totalCost.toFixed(2)}</span>
+            </div>
+            <div className="h-4 w-px bg-purple-400/30"></div>
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-purple-200" />
+              <span className="text-sm font-medium">{transcriptionRate}% completado</span>
+            </div>
+            <div className="h-4 w-px bg-purple-400/30"></div>
+            <div className="flex items-center gap-2">
+              <Zap className="w-4 h-4 text-purple-200" />
+              <span className="text-sm font-medium">{aiStats.averageTokens} tokens/nota</span>
+            </div>
+          </div>
+          
+          {/* Sección Derecha: Estado y Provider */}
           <div className="flex items-center gap-3">
-            <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${
+            <div className={`flex items-center gap-2 px-2 py-1 rounded-full text-xs ${
               isConnected ? 'bg-green-500/20' : 'bg-red-500/20'
             }`}>
-              <div className={`w-2 h-2 rounded-full ${
+              <div className={`w-1.5 h-1.5 rounded-full ${
                 isConnected ? 'bg-green-400' : 'bg-red-400'
               } animate-pulse`} />
-              <span className="text-sm">
-                {isConnected ? 'Conectado' : 'Desconectado'}
-              </span>
+              <span>{isConnected ? 'Conectado' : 'Desconectado'}</span>
             </div>
             
-            <div className="px-3 py-1 bg-white/20 backdrop-blur rounded-full">
-              <span className="text-sm font-medium">{aiStats.provider}</span>
+            <div className="px-2 py-1 bg-white/20 backdrop-blur rounded-full">
+              <span className="text-xs font-medium">{aiStats.provider}</span>
             </div>
-          </div>
-        </div>
-        
-        {/* Estadísticas de IA en tiempo real */}
-        <div className="grid grid-cols-5 gap-4">
-          <div className="bg-white/10 backdrop-blur rounded-xl p-3">
-            <div className="flex items-center justify-between mb-1">
-              <Brain className="w-5 h-5 text-purple-200" />
-              <span className="text-xl font-bold">{transcribedNotes}/{totalNotes}</span>
-            </div>
-            <p className="text-xs text-purple-100">Transcritas</p>
-          </div>
-          
-          <div className="bg-white/10 backdrop-blur rounded-xl p-3">
-            <div className="flex items-center justify-between mb-1">
-              <Hash className="w-5 h-5 text-purple-200" />
-              <span className="text-xl font-bold">{aiStats.totalTokens.toLocaleString()}</span>
-            </div>
-            <p className="text-xs text-purple-100">Tokens Usados</p>
-          </div>
-          
-          <div className="bg-white/10 backdrop-blur rounded-xl p-3">
-            <div className="flex items-center justify-between mb-1">
-              <DollarSign className="w-5 h-5 text-purple-200" />
-              <span className="text-xl font-bold">${aiStats.totalCost.toFixed(4)}</span>
-            </div>
-            <p className="text-xs text-purple-100">Costo Total</p>
-          </div>
-          
-          <div className="bg-white/10 backdrop-blur rounded-xl p-3">
-            <div className="flex items-center justify-between mb-1">
-              <Activity className="w-5 h-5 text-purple-200" />
-              <span className="text-xl font-bold">{transcriptionRate}%</span>
-            </div>
-            <p className="text-xs text-purple-100">Completado</p>
-          </div>
-          
-          <div className="bg-white/10 backdrop-blur rounded-xl p-3">
-            <div className="flex items-center justify-between mb-1">
-              <Zap className="w-5 h-5 text-purple-200" />
-              <span className="text-xl font-bold">{aiStats.averageTokens}</span>
-            </div>
-            <p className="text-xs text-purple-100">Tokens/Nota</p>
           </div>
         </div>
       </div>

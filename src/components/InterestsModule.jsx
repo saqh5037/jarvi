@@ -236,54 +236,64 @@ const InterestsModule = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
+    <div className="space-y-4">
+      {/* Header Horizontal Compacto */}
+      <div className="bg-gradient-to-r from-yellow-500 to-orange-600 rounded-xl px-4 py-3 text-white">
+        <div className="flex items-center justify-between">
+          {/* Sección Izquierda: Ícono + Título */}
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-emerald-100 rounded-xl">
-              <BookOpen className="w-6 h-6 text-emerald-600" />
+            <div className="p-2 bg-white/20 backdrop-blur rounded-lg">
+              <BookOpen className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">Intereses</h2>
-              <p className="text-sm text-gray-500">Guarda y organiza contenido interesante para más tarde</p>
+              <h2 className="text-lg font-bold">Intereses</h2>
+              <p className="text-xs text-yellow-100">Guarda y organiza contenido</p>
             </div>
           </div>
           
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Agregar Interés
-          </button>
+          {/* Sección Central: Estadísticas */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Archive className="w-4 h-4 text-yellow-200" />
+              <span className="text-sm font-medium">{interests.length} total</span>
+            </div>
+            <div className="h-4 w-px bg-yellow-400/30"></div>
+            <div className="flex items-center gap-2">
+              <Eye className="w-4 h-4 text-yellow-200" />
+              <span className="text-sm font-medium">{interests.filter(i => !i.dateRead).length} sin leer</span>
+            </div>
+            <div className="h-4 w-px bg-yellow-400/30"></div>
+            <div className="flex items-center gap-2">
+              <Bookmark className="w-4 h-4 text-yellow-200" />
+              <span className="text-sm font-medium">{interests.filter(i => i.dateRead).length} leídos</span>
+            </div>
+            <div className="h-4 w-px bg-yellow-400/30"></div>
+            <div className="flex items-center gap-2">
+              <Star className="w-4 h-4 text-yellow-200" />
+              <span className="text-sm font-medium">{interests.filter(i => i.favorite).length} favoritos</span>
+            </div>
+            <div className="h-4 w-px bg-yellow-400/30"></div>
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-yellow-200" />
+              <span className="text-sm font-medium">{interests.filter(i => i.priority === 'high').length} prioritarios</span>
+            </div>
+          </div>
+          
+          {/* Sección Derecha: Acciones */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="px-3 py-1.5 bg-white/20 backdrop-blur text-white rounded-lg hover:bg-white/30 transition-colors flex items-center gap-2 text-sm font-medium"
+            >
+              <Plus className="w-4 h-4" />
+              Agregar
+            </button>
+          </div>
         </div>
+      </div>
 
-        {/* Estadísticas */}
-        <div className="grid grid-cols-5 gap-4 mb-4">
-          <div className="bg-emerald-50 rounded-lg p-3">
-            <div className="text-2xl font-bold text-emerald-600">{interests.length}</div>
-            <div className="text-sm text-emerald-700">Total</div>
-          </div>
-          <div className="bg-blue-50 rounded-lg p-3">
-            <div className="text-2xl font-bold text-blue-600">{interests.filter(i => !i.dateRead).length}</div>
-            <div className="text-sm text-blue-700">Sin leer</div>
-          </div>
-          <div className="bg-green-50 rounded-lg p-3">
-            <div className="text-2xl font-bold text-green-600">{interests.filter(i => i.dateRead).length}</div>
-            <div className="text-sm text-green-700">Leídos</div>
-          </div>
-          <div className="bg-yellow-50 rounded-lg p-3">
-            <div className="text-2xl font-bold text-yellow-600">{interests.filter(i => i.favorite).length}</div>
-            <div className="text-sm text-yellow-700">Favoritos</div>
-          </div>
-          <div className="bg-purple-50 rounded-lg p-3">
-            <div className="text-2xl font-bold text-purple-600">{interests.filter(i => i.priority === 'high').length}</div>
-            <div className="text-sm text-purple-700">Alta prioridad</div>
-          </div>
-        </div>
-
-        {/* Filtros */}
+      {/* Filtros */}
+      <div className="bg-white rounded-xl p-4 shadow-sm">
         <div className="flex gap-4">
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
@@ -292,14 +302,14 @@ const InterestsModule = () => {
               placeholder="Buscar intereses..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full pl-10 pr-4 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </div>
           
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="px-4 py-2 text-gray-900 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
           >
             <option value="all">Todas las categorías</option>
             {Object.entries(categories).map(([key, category]) => (
@@ -310,7 +320,7 @@ const InterestsModule = () => {
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="px-4 py-2 text-gray-900 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
           >
             <option value="all">Todos los tipos</option>
             {Object.entries(types).map(([key, type]) => (
@@ -321,7 +331,7 @@ const InterestsModule = () => {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="px-4 py-2 text-gray-900 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
           >
             <option value="all">Todos</option>
             <option value="unread">Sin leer</option>
@@ -349,7 +359,7 @@ const InterestsModule = () => {
                 value={newInterest.title}
                 onChange={(e) => setNewInterest({...newInterest, title: e.target.value})}
                 placeholder="Título del contenido"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
             
@@ -360,7 +370,7 @@ const InterestsModule = () => {
                 value={newInterest.url}
                 onChange={(e) => setNewInterest({...newInterest, url: e.target.value})}
                 placeholder="https://ejemplo.com"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
             
@@ -371,7 +381,7 @@ const InterestsModule = () => {
                 onChange={(e) => setNewInterest({...newInterest, description: e.target.value})}
                 placeholder="Breve descripción del contenido"
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
             
@@ -380,7 +390,7 @@ const InterestsModule = () => {
               <select
                 value={newInterest.category}
                 onChange={(e) => setNewInterest({...newInterest, category: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
                 {Object.entries(categories).map(([key, category]) => (
                   <option key={key} value={key}>{category.label}</option>
@@ -393,7 +403,7 @@ const InterestsModule = () => {
               <select
                 value={newInterest.type}
                 onChange={(e) => setNewInterest({...newInterest, type: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
                 {Object.entries(types).map(([key, type]) => (
                   <option key={key} value={key}>{type.label}</option>
@@ -406,7 +416,7 @@ const InterestsModule = () => {
               <select
                 value={newInterest.priority}
                 onChange={(e) => setNewInterest({...newInterest, priority: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
                 {Object.entries(priorities).map(([key, priority]) => (
                   <option key={key} value={key}>{priority.label}</option>
@@ -421,7 +431,7 @@ const InterestsModule = () => {
                 value={newInterest.readingTime}
                 onChange={(e) => setNewInterest({...newInterest, readingTime: parseInt(e.target.value) || 0})}
                 placeholder="15"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
             
@@ -432,7 +442,7 @@ const InterestsModule = () => {
                 value={newInterest.tags}
                 onChange={(e) => setNewInterest({...newInterest, tags: e.target.value})}
                 placeholder="react, javascript, frontend"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
             
@@ -443,7 +453,7 @@ const InterestsModule = () => {
                 onChange={(e) => setNewInterest({...newInterest, notes: e.target.value})}
                 placeholder="Notas adicionales (opcional)"
                 rows={2}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
           </div>

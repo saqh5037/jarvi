@@ -327,14 +327,14 @@ Generado automáticamente por JARVI
               placeholder="Buscar reuniones..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full pl-10 pr-4 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
           </div>
           
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="px-4 py-2 text-gray-900 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
           >
             <option value="all">Todos los estados</option>
             <option value="completed">Completadas</option>
@@ -363,7 +363,7 @@ Generado automáticamente por JARVI
                 value={newMeeting.title}
                 onChange={(e) => setNewMeeting({...newMeeting, title: e.target.value})}
                 placeholder="Ej: Reunión de Planning Q1 2025"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
             </div>
             
@@ -373,7 +373,7 @@ Generado automáticamente por JARVI
                 type="datetime-local"
                 value={newMeeting.date}
                 onChange={(e) => setNewMeeting({...newMeeting, date: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
             </div>
             
@@ -384,7 +384,7 @@ Generado automáticamente por JARVI
                 value={newMeeting.participants}
                 onChange={(e) => setNewMeeting({...newMeeting, participants: e.target.value})}
                 placeholder="Juan Pérez, María García, Carlos López"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
             </div>
             
@@ -395,7 +395,7 @@ Generado automáticamente por JARVI
                 value={newMeeting.tags}
                 onChange={(e) => setNewMeeting({...newMeeting, tags: e.target.value})}
                 placeholder="sprint, planning, Q1"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
             </div>
           </div>
@@ -653,7 +653,7 @@ Generado automáticamente por JARVI
                   type="email"
                   value={emailTemplate.to}
                   onChange={(e) => setEmailTemplate({...emailTemplate, to: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                   placeholder="destinatario@email.com"
                 />
               </div>
@@ -664,7 +664,7 @@ Generado automáticamente por JARVI
                   type="email"
                   value={emailTemplate.cc}
                   onChange={(e) => setEmailTemplate({...emailTemplate, cc: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                   placeholder="copia@email.com"
                 />
               </div>
@@ -675,7 +675,7 @@ Generado automáticamente por JARVI
                   type="text"
                   value={emailTemplate.subject}
                   onChange={(e) => setEmailTemplate({...emailTemplate, subject: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
 
@@ -685,7 +685,7 @@ Generado automáticamente por JARVI
                   value={emailTemplate.body}
                   onChange={(e) => setEmailTemplate({...emailTemplate, body: e.target.value})}
                   rows={12}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 text-gray-900 bg-white placeholder-gray-400 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
             </div>

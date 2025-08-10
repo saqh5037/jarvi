@@ -258,89 +258,78 @@ const DashboardStats = () => {
     : 0;
   
   return (
-    <div className="space-y-6 min-h-screen bg-gray-100 p-6">
-      {/* Header con estado de conexión */}
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-6 text-white">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">Dashboard JARVI</h1>
-            <p className="text-indigo-100">Sistema de Gestión Inteligente</p>
+    <div className="space-y-4">
+      {/* Header Horizontal Compacto */}
+      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl px-4 py-3 text-white">
+        <div className="flex items-center justify-between">
+          {/* Sección Izquierda: Ícono + Título */}
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-white/20 backdrop-blur rounded-lg">
+              <Activity className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold">Dashboard JARVI</h2>
+              <p className="text-xs text-indigo-100">Sistema de Gestión Inteligente</p>
+            </div>
           </div>
           
+          {/* Sección Central: Estadísticas principales */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
+              <Database className="w-4 h-4 text-indigo-200" />
+              <span className="text-sm font-medium">
+                {stats.voiceNotes.total + stats.reminders.total + stats.todos.total + 
+                 stats.meetings.total + stats.interests.total} registros
+              </span>
+            </div>
+            <div className="h-4 w-px bg-indigo-400/30"></div>
+            <div className="flex items-center gap-2">
+              <Target className="w-4 h-4 text-indigo-200" />
+              <span className="text-sm font-medium">{completionRate}% completado</span>
+            </div>
+            <div className="h-4 w-px bg-indigo-400/30"></div>
+            <div className="flex items-center gap-2">
+              <Brain className="w-4 h-4 text-indigo-200" />
+              <span className="text-sm font-medium">{transcriptionRate}% transcrito</span>
+            </div>
+            <div className="h-4 w-px bg-indigo-400/30"></div>
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-indigo-200" />
+              <span className="text-sm font-medium">{stats.voiceNotes.today + stats.todos.today} hoy</span>
+            </div>
+            <div className="h-4 w-px bg-indigo-400/30"></div>
+            <div className="flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-indigo-200" />
+              <span className="text-sm font-medium">${stats.costs.total?.toFixed(2) || '0.00'}</span>
+            </div>
+          </div>
+          
+          {/* Sección Derecha: Estado de conexión */}
+          <div className="flex items-center gap-3">
+            <div className={`flex items-center gap-2 px-2 py-1 rounded-full text-xs ${
+              isConnected ? 'bg-green-500/20' : 'bg-red-500/20'
+            }`}>
               {isConnected ? (
                 <>
-                  <Wifi className="w-5 h-5 text-green-400" />
+                  <Wifi className="w-3 h-3 text-green-400" />
                   <span className="text-green-400">Conectado</span>
                 </>
               ) : (
                 <>
-                  <WifiOff className="w-5 h-5 text-red-400" />
+                  <WifiOff className="w-3 h-3 text-red-400" />
                   <span className="text-red-400">Desconectado</span>
                 </>
               )}
             </div>
-            
-            <div className="text-sm text-indigo-100">
-              Última actualización: {formatTime(lastUpdate)}
-            </div>
-          </div>
-        </div>
-        
-        {/* Estadísticas principales */}
-        <div className="grid grid-cols-5 gap-4">
-          <div className="bg-white/20 backdrop-blur rounded-xl p-4">
-            <div className="flex items-center justify-between mb-2">
-              <Activity className="w-8 h-8" />
-              <span className="text-2xl font-bold">
-                {stats.voiceNotes.total + stats.reminders.total + stats.todos.total + 
-                 stats.meetings.total + stats.interests.total}
-              </span>
-            </div>
-            <p className="text-sm text-indigo-100">Total Registros</p>
-          </div>
-          
-          <div className="bg-white/20 backdrop-blur rounded-xl p-4">
-            <div className="flex items-center justify-between mb-2">
-              <Target className="w-8 h-8" />
-              <span className="text-2xl font-bold">{completionRate}%</span>
-            </div>
-            <p className="text-sm text-indigo-100">Completado</p>
-          </div>
-          
-          <div className="bg-white/20 backdrop-blur rounded-xl p-4">
-            <div className="flex items-center justify-between mb-2">
-              <Brain className="w-8 h-8" />
-              <span className="text-2xl font-bold">{transcriptionRate}%</span>
-            </div>
-            <p className="text-sm text-indigo-100">Transcrito</p>
-          </div>
-          
-          <div className="bg-white/20 backdrop-blur rounded-xl p-4">
-            <div className="flex items-center justify-between mb-2">
-              <Clock className="w-8 h-8" />
-              <span className="text-2xl font-bold">
-                {stats.voiceNotes.today + stats.todos.today}
-              </span>
-            </div>
-            <p className="text-sm text-indigo-100">Hoy</p>
-          </div>
-          
-          <div className="bg-white/20 backdrop-blur rounded-xl p-4">
-            <div className="flex items-center justify-between mb-2">
-              <DollarSign className="w-8 h-8" />
-              <span className="text-2xl font-bold">
-                ${stats.costs.total?.toFixed(2) || '0.00'}
-              </span>
-            </div>
-            <p className="text-sm text-indigo-100">Costo APIs</p>
+            <span className="text-xs text-indigo-100">
+              {formatTime(lastUpdate)}
+            </span>
           </div>
         </div>
       </div>
       
       {/* Grid de módulos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Notas de Voz */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
