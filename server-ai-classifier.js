@@ -309,6 +309,140 @@ function extractTechnologies(content) {
 
 // ==================== ENDPOINTS ====================
 
+// Endpoint para mejorar texto con IA
+app.post('/api/improve-text', async (req, res) => {
+  try {
+    const { text, context = 'general', improvements = ['all'] } = req.body;
+    
+    if (!text) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'No se proporcionó texto' 
+      });
+    }
+    
+    // Si Gemini está disponible, usar IA
+    if (genAI) {
+      try {
+        const improvementPrompt = `
+Mejora el siguiente texto según el contexto y mejoras solicitadas.
+
+Texto original: "${text}"
+
+Contexto: ${context}
+Mejoras solicitadas: ${improvements.join(', ')}
+
+Instrucciones:
+1. Corrige errores gramaticales y ortográficos
+2. Mejora la claridad y estructura
+3. Añade puntuación adecuada
+4. Mantén el significado original
+5. Si es una tarea, asegúrate de que sea clara y accionable
+
+Además, sugiere:
+- Categoría más apropiada (work, personal, health, finance, learning, shopping, home)
+- Prioridad (urgent, high, medium, low)
+- Tags relevantes
+- Si detectas una fecha o tiempo, extráela
+
+Responde en formato JSON:
+{
+  "improvedText": "texto mejorado",
+  "suggestions": {
+    "category": { "value": "categoría", "confidence": 0.0-1.0 },
+    "priority": { "value": "prioridad", "confidence": 0.0-1.0 },
+    "tags": [{ "value": "tag", "confidence": 0.0-1.0 }],
+    "dueDate": "fecha si se detecta",
+    "summary": "resumen de mejoras aplicadas"
+  }
+}`;
+        
+        const result = await model.generateContent(improvementPrompt);
+        const response = await result.response;
+        const responseText = response.text();
+        
+        // Intentar parsear como JSON
+        try {
+          const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            return res.json({
+              success: true,
+              ...parsed
+            });
+          }
+        } catch (parseError) {
+          // Si no es JSON válido, devolver el texto mejorado simple
+          return res.json({
+            success: true,
+            improvedText: responseText.trim(),
+            suggestions: null
+          });
+        }
+      } catch (aiError) {
+        console.error('Error con Gemini:', aiError);
+      }
+    }
+    
+    // Fallback: mejoras básicas sin IA
+    let improvedText = text.trim();
+    
+    // Capitalizar primera letra
+    improvedText = improvedText.charAt(0).toUpperCase() + improvedText.slice(1);
+    
+    // Añadir punto final si no tiene
+    if (!improvedText.match(/[.!?]$/)) {
+      improvedText += '.';
+    }
+    
+    // Corregir espacios múltiples
+    improvedText = improvedText.replace(/\s+/g, ' ');
+    
+    // Detectar categoría básica
+    const lowerText = text.toLowerCase();
+    let suggestedCategory = 'personal';
+    let suggestedPriority = 'medium';
+    const suggestedTags = [];
+    
+    if (lowerText.includes('trabajo') || lowerText.includes('reunión') || lowerText.includes('proyecto')) {
+      suggestedCategory = 'work';
+      suggestedTags.push({ value: 'trabajo', confidence: 0.7 });
+    }
+    
+    if (lowerText.includes('comprar') || lowerText.includes('compra')) {
+      suggestedCategory = 'shopping';
+      suggestedTags.push({ value: 'comprar', confidence: 0.8 });
+    }
+    
+    if (lowerText.includes('urgente') || lowerText.includes('importante') || lowerText.includes('hoy')) {
+      suggestedPriority = 'high';
+      suggestedTags.push({ value: 'importante', confidence: 0.8 });
+    }
+    
+    if (lowerText.includes('llamar') || lowerText.includes('contactar')) {
+      suggestedTags.push({ value: 'llamar', confidence: 0.7 });
+    }
+    
+    res.json({
+      success: true,
+      improvedText,
+      suggestions: {
+        category: { value: suggestedCategory, confidence: 0.6 },
+        priority: { value: suggestedPriority, confidence: 0.5 },
+        tags: suggestedTags,
+        summary: 'Mejoras básicas aplicadas: capitalización y puntuación'
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error mejorando texto:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Error al mejorar el texto' 
+    });
+  }
+});
+
 // Clasificar contenido
 app.post('/api/classify', async (req, res) => {
   try {

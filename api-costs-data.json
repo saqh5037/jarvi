@@ -15,8 +15,8 @@
       "cost": 0
     },
     "gemini": {
-      "calls": 94,
-      "tokens": 84477,
+      "calls": 103,
+      "tokens": 89354,
       "cost": 0
     },
     "claude": {
@@ -1623,6 +1623,159 @@
         "fileName": "voice_871556715_1754924089920.ogg",
         "language": "es",
         "transcriptionLength": 89
+      }
+    },
+    {
+      "id": 1754925905825,
+      "timestamp": "2025-08-11T15:25:05.825Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 467,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754925903598.ogg",
+        "language": "es",
+        "transcriptionLength": 224
+      }
+    },
+    {
+      "id": 1754927520839,
+      "timestamp": "2025-08-11T15:52:00.839Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 681,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754926971787.ogg",
+        "language": "es",
+        "transcriptionLength": 438
+      }
+    },
+    {
+      "id": 1754932338200,
+      "timestamp": "2025-08-11T17:12:18.200Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 355,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754932311196.ogg",
+        "language": "es",
+        "transcriptionLength": 112
+      }
+    },
+    {
+      "id": 1754932353272,
+      "timestamp": "2025-08-11T17:12:33.272Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 355,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754932311196.ogg",
+        "language": "es",
+        "transcriptionLength": 112
+      }
+    },
+    {
+      "id": 1754935404122,
+      "timestamp": "2025-08-11T18:03:24.122Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 273,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754935394453.ogg",
+        "language": "es",
+        "transcriptionLength": 30
+      }
+    },
+    {
+      "id": 1754935948496,
+      "timestamp": "2025-08-11T18:12:28.496Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 446,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754935773480.ogg",
+        "language": "es",
+        "transcriptionLength": 203
+      }
+    },
+    {
+      "id": 1754937263639,
+      "timestamp": "2025-08-11T18:34:23.639Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 732,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754934930812.ogg",
+        "language": "es",
+        "transcriptionLength": 489
+      }
+    },
+    {
+      "id": 1754937425379,
+      "timestamp": "2025-08-11T18:37:05.379Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 787,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754934552802.ogg",
+        "language": "es",
+        "transcriptionLength": 544
+      }
+    },
+    {
+      "id": 1754937474473,
+      "timestamp": "2025-08-11T18:37:54.473Z",
+      "api": "gemini",
+      "service": "transcription",
+      "cost": 0,
+      "currency": "USD",
+      "usage": {
+        "tokens": 781,
+        "withinFreeLimit": true
+      },
+      "metadata": {
+        "fileName": "voice_871556715_1754934552802.ogg",
+        "language": "es",
+        "transcriptionLength": 538
       }
     }
   ]

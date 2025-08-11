@@ -522,21 +522,41 @@ async function processVoiceNoteAutomatic(voiceFileId, duration, userName, chatId
     });
     
     // Transcribir el audio
+    let transcriptionResult = null;
     let transcription = null;
+    let transcriptionProvider = 'unknown';
+    let transcriptionProviderName = 'Desconocido';
+    
     await bot.sendMessage(chatId, '🤖 *Transcribiendo audio...*', { parse_mode: 'Markdown' });
     
     try {
-      transcription = await transcriptionService.transcribeAudio(filePath, 'es');
-      if (transcription) {
+      transcriptionResult = await transcriptionService.transcribeAudio(filePath, 'es');
+      
+      // Manejar nueva estructura o string simple (compatibilidad)
+      if (typeof transcriptionResult === 'object' && transcriptionResult.text) {
+        transcription = transcriptionResult.text;
+        transcriptionProvider = transcriptionResult.provider;
+        transcriptionProviderName = transcriptionResult.providerName;
+        console.log(`✅ Audio transcrito exitosamente con ${transcriptionResult.providerName}`);
+      } else if (typeof transcriptionResult === 'string') {
+        transcription = transcriptionResult;
+        transcriptionProvider = 'legacy';
+        transcriptionProviderName = 'Servicio Legado';
         console.log('✅ Audio transcrito exitosamente');
+      }
+      
+      if (transcription) {
+        // Preparar mensaje de transcripción con indicador del servicio
+        const providerEmoji = transcriptionProvider === 'gemini' ? '✨' : 
+                            transcriptionProvider === 'openai' ? '🤖' : 
+                            transcriptionProvider === 'whisper_local' ? '💻' : '📝';
         
-        // Preparar mensaje de transcripción
-        let message = `📝 *Transcripción:*\n_"${transcription}"_`;
+        let message = `${providerEmoji} *Transcripción con ${transcriptionProviderName}:*\n_"${transcription}"_`;
         
         // Si el mensaje es muy largo para Telegram (límite 4096 caracteres)
         if (message.length > 4000) {
           const truncated = transcription.substring(0, 500);
-          message = `📝 *Transcripción (fragmento):*\n_"${truncated}..."_\n\n⚠️ *Nota:* La transcripción completa es muy larga para Telegram.\n✅ Guardada completa en JARVI Dashboard`;
+          message = `${providerEmoji} *Transcripción (fragmento) con ${transcriptionProviderName}:*\n_"${truncated}..."_\n\n⚠️ *Nota:* La transcripción completa es muy larga para Telegram.\n✅ Guardada completa en JARVI Dashboard`;
         }
         
         await bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
@@ -545,7 +565,7 @@ async function processVoiceNoteAutomatic(voiceFileId, duration, userName, chatId
       console.error('Error en transcripción:', error);
     }
     
-    // Crear metadata de la nota
+    // Crear metadata de la nota con información del proveedor
     const voiceNote = {
       id: timestamp,
       fileName: fileName,
@@ -558,6 +578,8 @@ async function processVoiceNoteAutomatic(voiceFileId, duration, userName, chatId
       },
       timestamp: new Date().toISOString(),
       transcription: transcription,
+      transcriptionProvider: transcriptionProvider,
+      transcriptionProviderName: transcriptionProviderName,
       type: 'voice_note'
     };
     

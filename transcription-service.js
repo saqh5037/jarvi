@@ -252,18 +252,100 @@ class LocalWhisperService {
   }
 }
 
-// Exportar el servicio apropiado basado en la disponibilidad de API keys
-let transcriptionService;
-
-if (process.env.GEMINI_API_KEY) {
-  // Preferir Gemini si está configurado (gratuito)
-  transcriptionService = new GeminiTranscriptionService();
-} else if (process.env.OPENAI_API_KEY) {
-  // Usar OpenAI si está configurado
-  transcriptionService = new TranscriptionService();
-} else {
-  // Fallback a servicio local
-  transcriptionService = new LocalWhisperService();
+// Crear un servicio unificado con fallback automático
+class UnifiedTranscriptionService {
+  constructor() {
+    this.geminiService = null;
+    this.openaiService = null;
+    this.localService = new LocalWhisperService();
+    
+    // Configurar servicios disponibles
+    if (process.env.GEMINI_API_KEY) {
+      this.geminiService = new GeminiTranscriptionService();
+      console.log('✅ Servicio de transcripción con Gemini habilitado');
+    }
+    
+    if (process.env.OPENAI_API_KEY) {
+      this.openaiService = new TranscriptionService();
+    }
+  }
+  
+  async transcribeAudio(audioFilePath, language = 'es') {
+    let transcription = null;
+    let transcriptionProvider = null;
+    
+    // 1. Intentar con Gemini primero (SIEMPRE PREFERIDO)
+    if (this.geminiService && this.geminiService.enabled) {
+      try {
+        transcription = await this.geminiService.transcribeAudio(audioFilePath, language);
+        // Si no es un error, retornar con información del proveedor
+        if (!transcription.includes('[Error:')) {
+          return {
+            text: transcription,
+            provider: 'gemini',
+            providerName: 'Gemini 1.5 Flash',
+            timestamp: new Date().toISOString(),
+            confidence: 'high'
+          };
+        }
+        console.log('⚠️ Gemini falló, intentando con servicio alternativo...');
+      } catch (error) {
+        console.log('⚠️ Gemini no disponible:', error.message);
+      }
+    }
+    
+    // 2. Intentar con OpenAI si está configurado
+    if (this.openaiService && this.openaiService.enabled) {
+      try {
+        console.log('🔄 Intentando con OpenAI Whisper...');
+        transcription = await this.openaiService.transcribeAudio(audioFilePath, language);
+        if (transcription && !transcription.includes('[Error:')) {
+          return {
+            text: transcription,
+            provider: 'openai',
+            providerName: 'OpenAI Whisper',
+            timestamp: new Date().toISOString(),
+            confidence: 'high'
+          };
+        }
+      } catch (error) {
+        console.log('⚠️ OpenAI no disponible:', error.message);
+      }
+    }
+    
+    // 3. Usar servicio local como último recurso
+    try {
+      console.log('🔄 Usando Whisper local como backup...');
+      transcription = await this.localService.transcribeAudio(audioFilePath, language);
+      return {
+        text: transcription,
+        provider: 'whisper_local',
+        providerName: 'Whisper Local',
+        timestamp: new Date().toISOString(),
+        confidence: 'medium'
+      };
+    } catch (error) {
+      console.error('❌ Todos los servicios fallaron:', error.message);
+      return {
+        text: '[Error: No se pudo transcribir el audio. Intenta más tarde.]',
+        provider: 'error',
+        providerName: 'Error',
+        timestamp: new Date().toISOString(),
+        confidence: 'none'
+      };
+    }
+  }
+  
+  getStatus() {
+    return {
+      gemini: this.geminiService ? this.geminiService.getStatus() : null,
+      openai: this.openaiService ? this.openaiService.getStatus() : null,
+      local: this.localService.getStatus(),
+      preferred: this.geminiService ? 'Gemini' : this.openaiService ? 'OpenAI' : 'Local'
+    };
+  }
 }
 
+// Exportar el servicio unificado
+const transcriptionService = new UnifiedTranscriptionService();
 export default transcriptionService;

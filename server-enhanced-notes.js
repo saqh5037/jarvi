@@ -292,6 +292,95 @@ app.patch('/api/voice-notes/:id', (req, res) => {
   }
 });
 
+// Actualizar transcripción de una nota
+app.put('/api/voice-notes/:id/transcription', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { transcription } = req.body;
+    
+    // Buscar el archivo JSON
+    const files = fs.readdirSync(voiceNotesDir);
+    const jsonFile = files.find(f => f.includes(id) && f.endsWith('.json'));
+    
+    if (!jsonFile) {
+      return res.status(404).json({ success: false, error: 'Nota no encontrada' });
+    }
+    
+    const jsonPath = path.join(voiceNotesDir, jsonFile);
+    const noteData = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+    
+    // Actualizar transcripción
+    noteData.transcription = transcription;
+    noteData.editedManually = true;
+    noteData.updatedAt = new Date().toISOString();
+    
+    // Guardar cambios en JSON
+    fs.writeFileSync(jsonPath, JSON.stringify(noteData, null, 2));
+    
+    // También actualizar el archivo .txt si existe
+    const txtFile = jsonFile.replace('.json', '.txt');
+    const txtPath = path.join(voiceNotesDir, txtFile);
+    if (fs.existsSync(txtPath)) {
+      fs.writeFileSync(txtPath, transcription);
+    }
+    
+    // Emitir evento de actualización
+    io.emit('voice-note-transcription-updated', { 
+      id, 
+      transcription,
+      editedManually: true
+    });
+    
+    console.log(`✏️ Transcripción actualizada manualmente para nota ${id}`);
+    
+    res.json({ success: true, message: 'Transcripción actualizada' });
+  } catch (error) {
+    console.error('Error actualizando transcripción:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Actualizar estado de procesado de una nota
+app.patch('/api/voice-notes/:id/processed', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { processed } = req.body;
+    
+    // Buscar el archivo JSON
+    const files = fs.readdirSync(voiceNotesDir);
+    const jsonFile = files.find(f => f.includes(id) && f.endsWith('.json'));
+    
+    if (!jsonFile) {
+      return res.status(404).json({ success: false, error: 'Nota no encontrada' });
+    }
+    
+    const jsonPath = path.join(voiceNotesDir, jsonFile);
+    const noteData = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+    
+    // Actualizar estado de procesado
+    noteData.processed = processed;
+    noteData.processedAt = processed ? new Date().toISOString() : null;
+    noteData.updatedAt = new Date().toISOString();
+    
+    // Guardar cambios en JSON
+    fs.writeFileSync(jsonPath, JSON.stringify(noteData, null, 2));
+    
+    // Emitir evento de actualización
+    io.emit('voice-note-processed-updated', { 
+      id, 
+      processed,
+      processedAt: noteData.processedAt
+    });
+    
+    console.log(`✅ Nota ${id} marcada como ${processed ? 'procesada' : 'no procesada'}`);
+    
+    res.json({ success: true, message: 'Estado de procesado actualizado' });
+  } catch (error) {
+    console.error('Error actualizando estado de procesado:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Endpoint para recibir mensajes de texto de Telegram
 app.post('/api/telegram-message', (req, res) => {
   const message = req.body;

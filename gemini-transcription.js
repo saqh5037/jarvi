@@ -79,9 +79,9 @@ class GeminiTranscriptionService {
   }
 
   /**
-   * Transcribe audio usando Gemini 1.5 Flash
+   * Transcribe audio usando Gemini 1.5 Flash con reintentos
    */
-  async transcribeAudio(audioFilePath, language = 'es') {
+  async transcribeAudio(audioFilePath, language = 'es', retryCount = 0) {
     if (!this.enabled) {
       console.log('⚠️ Gemini no configurado - usando transcripción de respaldo');
       return this.fallbackTranscription();
@@ -143,13 +143,20 @@ Si no hay audio claro o no se puede transcribir, responde con "Audio no claro".`
       return transcription;
 
     } catch (error) {
-      console.error('❌ Error transcribiendo con Gemini:', error.message);
+      console.error('❌ Error transcribiendo con Gemini:', error);
       
-      if (error.message.includes('API key')) {
+      // Si es error 503 (servicio sobrecargado) y no hemos reintentado mucho
+      if (error.message && error.message.includes('503') && retryCount < 3) {
+        console.log(`⏳ Reintentando transcripción en 2 segundos... (intento ${retryCount + 1}/3)`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        return this.transcribeAudio(audioFilePath, language, retryCount + 1);
+      }
+      
+      if (error.message && error.message.includes('API key')) {
         console.error('Verifica tu GEMINI_API_KEY en el archivo .env');
       }
       
-      if (error.message.includes('quota')) {
+      if (error.message && error.message.includes('quota')) {
         console.error('Has excedido tu cuota gratuita de Gemini (15 RPM)');
       }
       
@@ -161,18 +168,8 @@ Si no hay audio claro o no se puede transcribir, responde con "Audio no claro".`
    * Transcripción de respaldo cuando Gemini no está disponible
    */
   fallbackTranscription() {
-    const transcriptions = [
-      "Hola, esta es una prueba del sistema de transcripción de JARVI.",
-      "Necesito revisar los reportes del día de hoy.",
-      "Por favor, programa una reunión para mañana a las 3 PM.",
-      "Recuérdame comprar leche cuando salga del trabajo.",
-      "El sistema está funcionando correctamente.",
-      "Prueba de nota de voz con Gemini."
-    ];
-    
-    const randomIndex = Math.floor(Math.random() * transcriptions.length);
-    console.log('📝 Usando transcripción de respaldo (configura Gemini para transcripción real)');
-    return transcriptions[randomIndex];
+    console.log('⚠️ Transcripción no disponible - Gemini temporalmente sobrecargado');
+    return "[Error: No se pudo transcribir el audio. El servicio de Gemini está temporalmente sobrecargado. Por favor, intenta nuevamente en unos momentos.]";
   }
 
   /**

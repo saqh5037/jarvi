@@ -28,7 +28,14 @@ import {
   ChevronUp,
   Wand2,
   Search,
-  List
+  List,
+  HardDrive,
+  Edit2,
+  Save,
+  X,
+  Check,
+  CheckSquare,
+  Square
 } from 'lucide-react';
 import io from 'socket.io-client';
 import axios from 'axios';
@@ -59,9 +66,13 @@ const EnhancedVoiceNotesModule = () => {
   const [activeTab, setActiveTab] = useState('notes'); // 'notes' o 'search'
   const [showAutoPromptGenerator, setShowAutoPromptGenerator] = useState(false);
   const [selectedNoteForAutoPrompt, setSelectedNoteForAutoPrompt] = useState(null);
+  const [editingNoteId, setEditingNoteId] = useState(null); // ID de la nota siendo editada
+  const [editingText, setEditingText] = useState(''); // Texto temporal de edición
+  const [showProcessed, setShowProcessed] = useState(true); // Mostrar/ocultar notas procesadas
   
   const audioRef = useRef(null);
   const socketRef = useRef(null);
+  const editTextareaRef = useRef(null);
   
   useEffect(() => {
     // Conectar con Socket.io
@@ -292,8 +303,95 @@ const EnhancedVoiceNotesModule = () => {
     return text.substring(0, maxLength) + '...';
   };
   
+  // Funciones para edición inline
+  const startEditing = (note) => {
+    setEditingNoteId(note.id);
+    setEditingText(note.transcription || '');
+    // Enfocar el textarea después de renderizar
+    setTimeout(() => {
+      if (editTextareaRef.current) {
+        editTextareaRef.current.focus();
+        editTextareaRef.current.select();
+      }
+    }, 100);
+  };
+  
+  const cancelEditing = () => {
+    setEditingNoteId(null);
+    setEditingText('');
+  };
+  
+  const saveEditedTranscription = async (noteId) => {
+    try {
+      // Actualizar localmente primero
+      setVoiceNotes(prev => prev.map(note => 
+        note.id === noteId 
+          ? { ...note, transcription: editingText, editedManually: true }
+          : note
+      ));
+      
+      // Guardar en el servidor
+      const response = await fetch(`${API_ENDPOINTS.ENHANCED_NOTES}/api/voice-notes/${noteId}/transcription`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcription: editingText })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al guardar la transcripción');
+      }
+      
+      // Limpiar estado de edición
+      setEditingNoteId(null);
+      setEditingText('');
+    } catch (error) {
+      console.error('Error guardando transcripción:', error);
+      // Revertir cambio local si falla
+      loadVoiceNotes();
+    }
+  };
+  
+  // Función para marcar nota como procesada/completada
+  const toggleNoteProcessed = async (noteId) => {
+    try {
+      const note = voiceNotes.find(n => n.id === noteId);
+      const newProcessedStatus = !note?.processed;
+      
+      // Actualizar localmente primero
+      setVoiceNotes(prev => prev.map(note => 
+        note.id === noteId 
+          ? { ...note, processed: newProcessedStatus, processedAt: newProcessedStatus ? new Date().toISOString() : null }
+          : note
+      ));
+      
+      // Guardar en el servidor
+      const response = await fetch(`${API_ENDPOINTS.ENHANCED_NOTES}/api/voice-notes/${noteId}/processed`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ processed: newProcessedStatus })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al actualizar estado de procesado');
+      }
+      
+      console.log(`✅ Nota ${noteId} marcada como ${newProcessedStatus ? 'procesada' : 'no procesada'}`);
+    } catch (error) {
+      console.error('Error actualizando estado de procesado:', error);
+      // Revertir cambio local si falla
+      loadVoiceNotes();
+    }
+  };
+  
+  // Filtrar notas según configuración
+  const filteredNotes = showProcessed 
+    ? voiceNotes 
+    : voiceNotes.filter(note => !note.processed);
+  
   // Calcular estadísticas
   const totalNotes = voiceNotes.length;
+  const processedNotes = voiceNotes.filter(n => n.processed).length;
+  const pendingNotes = totalNotes - processedNotes;
   const transcribedNotes = voiceNotes.filter(n => n.transcription).length;
   const totalDuration = voiceNotes.reduce((acc, n) => acc + (n.duration || 0), 0);
   const transcriptionRate = totalNotes > 0 ? Math.round((transcribedNotes / totalNotes) * 100) : 0;
@@ -317,28 +415,23 @@ const EnhancedVoiceNotesModule = () => {
           {/* Sección Central: Estadísticas */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
+              <CheckSquare className="w-4 h-4 text-purple-200" />
+              <span className="text-sm font-medium">{processedNotes} procesadas</span>
+            </div>
+            <div className="h-4 w-px bg-purple-400/30"></div>
+            <div className="flex items-center gap-2">
+              <Square className="w-4 h-4 text-purple-200" />
+              <span className="text-sm font-medium">{pendingNotes} pendientes</span>
+            </div>
+            <div className="h-4 w-px bg-purple-400/30"></div>
+            <div className="flex items-center gap-2">
               <Brain className="w-4 h-4 text-purple-200" />
               <span className="text-sm font-medium">{transcribedNotes}/{totalNotes} transcritas</span>
             </div>
             <div className="h-4 w-px bg-purple-400/30"></div>
             <div className="flex items-center gap-2">
-              <Hash className="w-4 h-4 text-purple-200" />
-              <span className="text-sm font-medium">{aiStats.totalTokens.toLocaleString()} tokens</span>
-            </div>
-            <div className="h-4 w-px bg-purple-400/30"></div>
-            <div className="flex items-center gap-2">
               <DollarSign className="w-4 h-4 text-purple-200" />
               <span className="text-sm font-medium">${aiStats.totalCost.toFixed(2)}</span>
-            </div>
-            <div className="h-4 w-px bg-purple-400/30"></div>
-            <div className="flex items-center gap-2">
-              <Activity className="w-4 h-4 text-purple-200" />
-              <span className="text-sm font-medium">{transcriptionRate}% completado</span>
-            </div>
-            <div className="h-4 w-px bg-purple-400/30"></div>
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-purple-200" />
-              <span className="text-sm font-medium">{aiStats.averageTokens} tokens/nota</span>
             </div>
           </div>
           
@@ -504,27 +597,72 @@ const EnhancedVoiceNotesModule = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="text-sm text-gray-500 mb-2">
-                Mostrando {voiceNotes.length} notas de voz
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-sm text-gray-500">
+                  Mostrando {filteredNotes.length} de {voiceNotes.length} notas
+                </div>
+                <button
+                  onClick={() => setShowProcessed(!showProcessed)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                    showProcessed 
+                      ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' 
+                      : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                  }`}
+                >
+                  {showProcessed ? (
+                    <>
+                      <CheckSquare className="w-4 h-4" />
+                      Mostrando todas
+                    </>
+                  ) : (
+                    <>
+                      <Square className="w-4 h-4" />
+                      Solo pendientes
+                    </>
+                  )}
+                </button>
               </div>
               <AnimatePresence>
-                {voiceNotes.map((note) => (
+                {filteredNotes.map((note) => (
                   <motion.div
                     key={note.id}
                     id={`note-${note.id}`}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
-                    className="bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-all"
+                    className={`rounded-xl p-4 transition-all ${
+                      note.processed 
+                        ? 'bg-green-50 border border-green-200 opacity-75' 
+                        : 'bg-gray-50 hover:bg-gray-100'
+                    }`}
                   >
                     <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-4 flex-1">
+                      <div className="flex items-start gap-3 flex-1">
+                        {/* Checkbox para marcar como procesada */}
+                        <button
+                          onClick={() => toggleNoteProcessed(note.id)}
+                          className={`mt-1 p-1 rounded transition-all ${
+                            note.processed
+                              ? 'text-green-600 hover:text-green-700'
+                              : 'text-gray-400 hover:text-purple-600'
+                          }`}
+                          title={note.processed ? 'Marcar como no procesada' : 'Marcar como procesada'}
+                        >
+                          {note.processed ? (
+                            <CheckSquare className="w-5 h-5" />
+                          ) : (
+                            <Square className="w-5 h-5" />
+                          )}
+                        </button>
+                        
                         {/* Botón de reproducción */}
                         <button
                           onClick={() => playVoiceNote(note)}
                           className={`p-3 rounded-full transition-all ${
                             currentlyPlaying === note.id
                               ? 'bg-purple-600 text-white'
+                              : note.processed
+                              ? 'bg-green-100 text-green-600 hover:bg-green-200'
                               : 'bg-white text-purple-600 hover:bg-purple-100'
                           } shadow-md`}
                         >
@@ -552,6 +690,55 @@ const EnhancedVoiceNotesModule = () => {
                             <span className="text-sm text-gray-500">
                               {formatTime(note.timestamp)}
                             </span>
+                            
+                            {/* Indicador de nota procesada */}
+                            {note.processed && (
+                              <>
+                                <span className="text-sm text-gray-500">•</span>
+                                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700 font-medium">
+                                  <Check className="w-3 h-3" />
+                                  Procesada
+                                </span>
+                              </>
+                            )}
+                            
+                            {/* INDICADOR DE IA USADO PARA TRANSCRIPCIÓN */}
+                            {note.transcriptionProvider && (
+                              <>
+                                <span className="text-sm text-gray-500">•</span>
+                                <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${
+                                  note.transcriptionProvider === 'gemini' 
+                                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white font-medium shadow-sm' 
+                                    : note.transcriptionProvider === 'openai'
+                                    ? 'bg-green-500 text-white'
+                                    : note.transcriptionProvider === 'whisper_local'
+                                    ? 'bg-gray-500 text-white'
+                                    : 'bg-gray-400 text-white'
+                                }`}>
+                                  {note.transcriptionProvider === 'gemini' ? (
+                                    <>
+                                      <Sparkles className="w-3 h-3" />
+                                      Gemini
+                                    </>
+                                  ) : note.transcriptionProvider === 'openai' ? (
+                                    <>
+                                      <Cpu className="w-3 h-3" />
+                                      OpenAI
+                                    </>
+                                  ) : note.transcriptionProvider === 'whisper_local' ? (
+                                    <>
+                                      <HardDrive className="w-3 h-3" />
+                                      Local
+                                    </>
+                                  ) : (
+                                    <>
+                                      <MessageSquare className="w-3 h-3" />
+                                      IA
+                                    </>
+                                  )}
+                                </span>
+                              </>
+                            )}
                           </div>
                           
                           {/* Transcripción o estado */}
@@ -560,49 +747,150 @@ const EnhancedVoiceNotesModule = () => {
                               <div className="flex items-start gap-2">
                                 <MessageSquare className="w-4 h-4 text-purple-600 mt-0.5" />
                                 <div className="flex-1">
-                                  <div 
-                                    onClick={() => toggleExpanded(note.id)}
-                                    className="cursor-pointer hover:bg-gray-50 rounded p-1 -m-1 transition-colors"
-                                  >
-                                    <p className="text-gray-700 italic">
-                                      "{expandedNotes.has(note.id) 
-                                        ? note.transcription 
-                                        : truncateText(note.transcription, 80)}"
-                                    </p>
-                                    {note.transcription.length > 80 && (
-                                      <button className="text-xs text-purple-600 hover:text-purple-700 mt-1 font-medium flex items-center gap-1">
-                                        {expandedNotes.has(note.id) ? (
+                                  {editingNoteId === note.id ? (
+                                    // Modo de edición
+                                    <div className="space-y-2">
+                                      <textarea
+                                        ref={editTextareaRef}
+                                        value={editingText}
+                                        onChange={(e) => setEditingText(e.target.value)}
+                                        className="w-full p-2 text-gray-700 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                                        rows={4}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Escape') {
+                                            cancelEditing();
+                                          } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                                            e.preventDefault();
+                                            saveEditedTranscription(note.id);
+                                          }
+                                        }}
+                                      />
+                                      <div className="flex items-center gap-2">
+                                        <button
+                                          onClick={() => saveEditedTranscription(note.id)}
+                                          className="flex items-center gap-1 px-3 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+                                        >
+                                          <Save className="w-3 h-3" />
+                                          Guardar
+                                        </button>
+                                        <button
+                                          onClick={cancelEditing}
+                                          className="flex items-center gap-1 px-3 py-1 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm"
+                                        >
+                                          <X className="w-3 h-3" />
+                                          Cancelar
+                                        </button>
+                                        <span className="text-xs text-gray-500 ml-2">
+                                          {navigator.platform.includes('Mac') ? 'Cmd' : 'Ctrl'}+Enter para guardar • Esc para cancelar
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    // Modo de visualización
+                                    <div>
+                                      <div className="flex items-start justify-between">
+                                        <div 
+                                          onClick={() => toggleExpanded(note.id)}
+                                          className="cursor-pointer hover:bg-gray-50 rounded p-1 -m-1 transition-colors flex-1"
+                                        >
+                                          <p className={`italic ${
+                                            note.processed 
+                                              ? 'text-gray-500 line-through' 
+                                              : 'text-gray-700'
+                                          }`}>
+                                            "{expandedNotes.has(note.id) 
+                                              ? note.transcription 
+                                              : truncateText(note.transcription, 80)}"
+                                          </p>
+                                          {note.transcription.length > 80 && (
+                                            <button className="text-xs text-purple-600 hover:text-purple-700 mt-1 font-medium flex items-center gap-1">
+                                              {expandedNotes.has(note.id) ? (
+                                                <>
+                                                  <ChevronUp className="w-3 h-3" />
+                                                  Ver menos
+                                                </>
+                                              ) : (
+                                                <>
+                                                  <ChevronDown className="w-3 h-3" />
+                                                  Ver más
+                                                </>
+                                              )}
+                                            </button>
+                                          )}
+                                        </div>
+                                        <button
+                                          onClick={() => startEditing(note)}
+                                          className="ml-2 p-1 text-purple-600 hover:bg-purple-50 rounded transition-colors"
+                                          title="Editar transcripción"
+                                        >
+                                          <Edit2 className="w-4 h-4" />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+                                  <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                                    {/* Indicador de edición manual */}
+                                    {note.editedManually && (
+                                      <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">
+                                        <Edit2 className="w-3 h-3" />
+                                        Editado manualmente
+                                      </span>
+                                    )}
+                                    
+                                    {/* Indicador del servicio de IA */}
+                                    {note.transcriptionProvider && !note.editedManually && (
+                                      <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full ${
+                                        note.transcriptionProvider === 'gemini' 
+                                          ? 'bg-gradient-to-r from-blue-100 to-purple-100 text-purple-700 font-medium' 
+                                          : note.transcriptionProvider === 'openai'
+                                          ? 'bg-green-100 text-green-700'
+                                          : note.transcriptionProvider === 'whisper_local'
+                                          ? 'bg-gray-100 text-gray-700'
+                                          : 'bg-gray-50 text-gray-600'
+                                      }`}>
+                                        {note.transcriptionProvider === 'gemini' ? (
                                           <>
-                                            <ChevronUp className="w-3 h-3" />
-                                            Ver menos
+                                            <Sparkles className="w-3 h-3" />
+                                            Gemini 1.5
+                                          </>
+                                        ) : note.transcriptionProvider === 'openai' ? (
+                                          <>
+                                            <Cpu className="w-3 h-3" />
+                                            OpenAI
+                                          </>
+                                        ) : note.transcriptionProvider === 'whisper_local' ? (
+                                          <>
+                                            <HardDrive className="w-3 h-3" />
+                                            Whisper Local
                                           </>
                                         ) : (
                                           <>
-                                            <ChevronDown className="w-3 h-3" />
-                                            Ver más
+                                            <MessageSquare className="w-3 h-3" />
+                                            {note.transcriptionProviderName || 'IA'}
                                           </>
                                         )}
-                                      </button>
+                                      </span>
                                     )}
-                                  </div>
-                                  {note.tokens && (
-                                    <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                                    
+                                    {note.tokens && (
                                       <span className="flex items-center gap-1">
                                         <Hash className="w-3 h-3" />
                                         {note.tokens} tokens
                                       </span>
-                                      {note.cost && (
-                                        <span className="flex items-center gap-1">
-                                          <DollarSign className="w-3 h-3" />
-                                          ${note.cost.toFixed(4)}
-                                        </span>
-                                      )}
+                                    )}
+                                    {note.cost && (
+                                      <span className="flex items-center gap-1">
+                                        <DollarSign className="w-3 h-3" />
+                                        ${note.cost.toFixed(4)}
+                                      </span>
+                                    )}
+                                    {!note.transcriptionProvider && (
                                       <span className="flex items-center gap-1">
                                         <CheckCircle className="w-3 h-3 text-green-500" />
-                                        IA Procesado
+                                        IA Procesado {note.transcriptionProviderName && `- ${note.transcriptionProviderName}`}
                                       </span>
-                                    </div>
-                                  )}
+                                    )}
+                                  </div>
                                   <div className="mt-3">
                                     <button
                                       onClick={() => window.open(`${API_ENDPOINTS.ENHANCED_NOTES}/voice-notes/${note.fileName}.txt`, '_blank')}

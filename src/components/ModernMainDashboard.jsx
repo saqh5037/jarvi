@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { io } from 'socket.io-client';
 import {
   LayoutDashboard,
   Mic,
@@ -22,7 +23,7 @@ import {
 import DashboardStats from './DashboardStats';
 import EnhancedVoiceNotesModule from './EnhancedVoiceNotesModule';
 import RemindersModule from './RemindersModule';
-import TodoModuleFixed from './TodoModuleFixed';
+import TodoModule from './TodoModule';
 import EnhancedMeetingsModule from './EnhancedMeetingsModule';
 import InterestsModule from './InterestsModule';
 import SettingsModule from './SettingsModule';
@@ -34,6 +35,12 @@ const ModernMainDashboard = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [pendingModuleChange, setPendingModuleChange] = useState(null);
   const [showUnsavedChangesModal, setShowUnsavedChangesModal] = useState(false);
+  const [moduleStats, setModuleStats] = useState({
+    todos: { pending: 0, today: 0 },
+    reminders: { active: 0 },
+    voiceNotes: { count: 0 },
+    meetings: { upcoming: 0 }
+  });
 
   const modules = [
     { 
@@ -61,16 +68,16 @@ const ModernMainDashboard = () => {
       component: RemindersModule,
       description: 'Alertas y notificaciones',
       gradient: 'from-orange-500 to-red-600',
-      stats: '3 pendientes'
+      stats: `${moduleStats.reminders.active} pendientes`
     },
     { 
       id: 'todos', 
       name: 'Tareas', 
       icon: CheckSquare, 
-      component: TodoModuleFixed,
+      component: TodoModule,
       description: 'Lista de tareas pendientes',
       gradient: 'from-green-500 to-emerald-600',
-      stats: '12 por hacer'
+      stats: `${moduleStats.todos.pending} por hacer`
     },
     { 
       id: 'meetings', 
@@ -79,7 +86,7 @@ const ModernMainDashboard = () => {
       component: EnhancedMeetingsModule,
       description: 'Gestión de reuniones',
       gradient: 'from-cyan-500 to-blue-600',
-      stats: '2 esta semana'
+      stats: `${moduleStats.meetings.upcoming} esta semana`
     },
     { 
       id: 'interests', 
@@ -109,6 +116,88 @@ const ModernMainDashboard = () => {
       stats: 'Sistema'
     }
   ];
+
+  // Cargar estadísticas reales
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        // Cargar tareas
+        const tasksResponse = await fetch('http://localhost:3003/api/tasks');
+        if (tasksResponse.ok) {
+          const tasksData = await tasksResponse.json();
+          if (tasksData.success && tasksData.tasks) {
+            const pendingTasks = tasksData.tasks.filter(t => t.status !== 'completed');
+            const todayTasks = tasksData.tasks.filter(t => {
+              if (!t.dueDate || t.status === 'completed') return false;
+              const today = new Date().toDateString();
+              const taskDate = new Date(t.dueDate).toDateString();
+              return today === taskDate;
+            });
+            
+            setModuleStats(prev => ({
+              ...prev,
+              todos: {
+                pending: pendingTasks.length,
+                today: todayTasks.length
+              }
+            }));
+          }
+        }
+
+        // Cargar recordatorios
+        const remindersResponse = await fetch('http://localhost:3002/api/reminders');
+        if (remindersResponse.ok) {
+          const remindersData = await remindersResponse.json();
+          if (remindersData.reminders) {
+            const activeReminders = remindersData.reminders.filter(r => r.active !== false);
+            setModuleStats(prev => ({
+              ...prev,
+              reminders: { active: activeReminders.length }
+            }));
+          }
+        }
+
+        // Cargar reuniones
+        const meetingsResponse = await fetch('http://localhost:3002/api/meetings');
+        if (meetingsResponse.ok) {
+          const meetingsData = await meetingsResponse.json();
+          if (meetingsData.meetings) {
+            const now = new Date();
+            const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+            const upcomingMeetings = meetingsData.meetings.filter(m => {
+              const meetingDate = new Date(m.date);
+              return meetingDate >= now && meetingDate <= weekFromNow;
+            });
+            setModuleStats(prev => ({
+              ...prev,
+              meetings: { upcoming: upcomingMeetings.length }
+            }));
+          }
+        }
+      } catch (error) {
+        console.error('Error cargando estadísticas:', error);
+      }
+    };
+
+    // Cargar estadísticas al inicio
+    loadStats();
+
+    // Actualizar cada 30 segundos
+    const interval = setInterval(loadStats, 30000);
+
+    // Conectar con WebSocket para actualizaciones en tiempo real
+    const socket = io('http://localhost:3003');
+    
+    socket.on('task-created', loadStats);
+    socket.on('task-updated', loadStats);
+    socket.on('task-deleted', loadStats);
+    socket.on('task-completed', loadStats);
+
+    return () => {
+      clearInterval(interval);
+      socket.disconnect();
+    };
+  }, []);
 
   const currentModule = modules.find(m => m.id === activeModule);
   const ModuleComponent = currentModule?.component;
