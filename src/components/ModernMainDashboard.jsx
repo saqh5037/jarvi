@@ -29,6 +29,52 @@ import InterestsModule from './InterestsModule';
 import SettingsModule from './SettingsModule';
 import ProjectChronologyModule from './ProjectChronologyModule';
 
+// Componente Badge tipo iOS con animaciones mejoradas
+const NotificationBadge = ({ count, color = 'bg-red-500', maxCount = 99 }) => {
+  const [prevCount, setPrevCount] = useState(count);
+  
+  useEffect(() => {
+    if (count !== prevCount && count > prevCount) {
+      // Trigger pulse animation when count increases
+      setPrevCount(count);
+    }
+  }, [count, prevCount]);
+  
+  if (count <= 0) return null;
+  
+  const displayCount = count > maxCount ? `${maxCount}+` : count;
+  
+  return (
+    <motion.div
+      key={count} // Force re-animation when count changes
+      initial={{ scale: 0 }}
+      animate={{ 
+        scale: [1, 1.2, 1],
+        transition: { 
+          scale: {
+            times: [0, 0.5, 1],
+            duration: 0.3
+          }
+        }
+      }}
+      exit={{ scale: 0 }}
+      className={`absolute -top-1 -right-1 min-w-[20px] h-5 px-1 ${color} text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg border-2 border-white`}
+      style={{
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.1)'
+      }}
+    >
+      <motion.span
+        key={displayCount}
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.2 }}
+      >
+        {displayCount}
+      </motion.span>
+    </motion.div>
+  );
+};
+
 const ModernMainDashboard = () => {
   const [activeModule, setActiveModule] = useState('dashboard');
   const [searchTerm, setSearchTerm] = useState('');
@@ -38,8 +84,12 @@ const ModernMainDashboard = () => {
   const [moduleStats, setModuleStats] = useState({
     todos: { pending: 0, today: 0 },
     reminders: { active: 0 },
-    voiceNotes: { count: 0 },
-    meetings: { upcoming: 0 }
+    voiceNotes: { count: 0, unprocessed: 0 },
+    meetings: { upcoming: 0 },
+    interests: { unread: 0 },
+    dashboard: { notifications: 0 },
+    chronology: { new: 0 },
+    settings: { updates: 0 }
   });
 
   const modules = [
@@ -50,7 +100,9 @@ const ModernMainDashboard = () => {
       component: DashboardStats,
       description: 'Vista general y estadísticas',
       gradient: 'from-blue-500 to-indigo-600',
-      stats: '15 actualizaciones'
+      stats: moduleStats.dashboard.notifications > 0 
+        ? `${moduleStats.dashboard.notifications} notificaciones`
+        : 'Vista general'
     },
     { 
       id: 'voice-notes', 
@@ -59,7 +111,9 @@ const ModernMainDashboard = () => {
       component: EnhancedVoiceNotesModule,
       description: 'Transcripción automática con IA',
       gradient: 'from-purple-500 to-pink-600',
-      stats: 'IA activa'
+      stats: moduleStats.voiceNotes.unprocessed > 0
+        ? `${moduleStats.voiceNotes.unprocessed} sin procesar`
+        : `${moduleStats.voiceNotes.count} notas`
     },
     { 
       id: 'reminders', 
@@ -68,7 +122,9 @@ const ModernMainDashboard = () => {
       component: RemindersModule,
       description: 'Alertas y notificaciones',
       gradient: 'from-orange-500 to-red-600',
-      stats: `${moduleStats.reminders.active} pendientes`
+      stats: moduleStats.reminders.active > 0
+        ? `${moduleStats.reminders.active} activos`
+        : 'Sin recordatorios'
     },
     { 
       id: 'todos', 
@@ -77,7 +133,9 @@ const ModernMainDashboard = () => {
       component: TodoModule,
       description: 'Lista de tareas pendientes',
       gradient: 'from-green-500 to-emerald-600',
-      stats: `${moduleStats.todos.pending} por hacer`
+      stats: moduleStats.todos.pending > 0
+        ? `${moduleStats.todos.pending} por hacer`
+        : 'Sin tareas'
     },
     { 
       id: 'meetings', 
@@ -86,7 +144,9 @@ const ModernMainDashboard = () => {
       component: EnhancedMeetingsModule,
       description: 'Gestión de reuniones',
       gradient: 'from-cyan-500 to-blue-600',
-      stats: `${moduleStats.meetings.upcoming} esta semana`
+      stats: moduleStats.meetings.upcoming > 0
+        ? `${moduleStats.meetings.upcoming} esta semana`
+        : 'Sin reuniones'
     },
     { 
       id: 'interests', 
@@ -95,7 +155,9 @@ const ModernMainDashboard = () => {
       component: InterestsModule,
       description: 'Artículos y contenido guardado',
       gradient: 'from-yellow-500 to-orange-600',
-      stats: '24 guardados'
+      stats: moduleStats.interests.unread > 0
+        ? `${moduleStats.interests.unread} sin leer`
+        : 'Todo leído'
     },
     { 
       id: 'chronology', 
@@ -104,7 +166,9 @@ const ModernMainDashboard = () => {
       component: ProjectChronologyModule,
       description: 'Historial de proyectos y aprendizajes',
       gradient: 'from-indigo-500 to-purple-600',
-      stats: 'Nuevo'
+      stats: moduleStats.chronology.new > 0
+        ? `${moduleStats.chronology.new} nuevos`
+        : 'Historial'
     },
     { 
       id: 'settings', 
@@ -113,14 +177,16 @@ const ModernMainDashboard = () => {
       component: SettingsModule,
       description: 'Personaliza tu sistema',
       gradient: 'from-gray-500 to-blue-600',
-      stats: 'Sistema'
+      stats: moduleStats.settings.updates > 0
+        ? `${moduleStats.settings.updates} actualizaciones`
+        : 'Sistema'
     }
   ];
 
-  // Cargar estadísticas reales
-  useEffect(() => {
-    const loadStats = async () => {
-      try {
+  // Función para cargar estadísticas
+  const loadStats = async () => {
+    console.log('🔄 Cargando estadísticas de módulos...');
+    try {
         // Cargar tareas
         const tasksResponse = await fetch('http://localhost:3003/api/tasks');
         if (tasksResponse.ok) {
@@ -174,11 +240,56 @@ const ModernMainDashboard = () => {
             }));
           }
         }
-      } catch (error) {
-        console.error('Error cargando estadísticas:', error);
-      }
-    };
 
+        // Cargar notas de voz
+        const voiceNotesResponse = await fetch('http://localhost:3001/api/voice-notes');
+        if (voiceNotesResponse.ok) {
+          const voiceNotesData = await voiceNotesResponse.json();
+          if (voiceNotesData.notes) {
+            const unprocessedNotes = voiceNotesData.notes.filter(n => !n.processed);
+            console.log('📊 Notas de voz - Total:', voiceNotesData.notes.length, 'Pendientes:', unprocessedNotes.length);
+            setModuleStats(prev => ({
+              ...prev,
+              voiceNotes: {
+                count: voiceNotesData.notes.length,
+                unprocessed: unprocessedNotes.length
+              }
+            }));
+          }
+        }
+
+        // Cargar intereses
+        const interestsResponse = await fetch('http://localhost:3001/api/interests');
+        if (interestsResponse.ok) {
+          const interestsData = await interestsResponse.json();
+          if (interestsData.interests) {
+            const unreadInterests = interestsData.interests.filter(i => !i.read);
+            setModuleStats(prev => ({
+              ...prev,
+              interests: { unread: unreadInterests.length }
+            }));
+          }
+        }
+
+        // Simular notificaciones del dashboard
+        setModuleStats(prev => ({
+          ...prev,
+          dashboard: { 
+            notifications: Math.max(0, 
+              prev.todos.pending + 
+              prev.reminders.active + 
+              (prev.meetings.upcoming > 0 ? 1 : 0)
+            )
+          }
+        }));
+
+    } catch (error) {
+      console.error('Error cargando estadísticas:', error);
+    }
+  };
+
+  // Cargar estadísticas reales
+  useEffect(() => {
     // Cargar estadísticas al inicio
     loadStats();
 
@@ -187,17 +298,32 @@ const ModernMainDashboard = () => {
 
     // Conectar con WebSocket para actualizaciones en tiempo real
     const socket = io('http://localhost:3003');
+    const voiceSocket = io('http://localhost:3001');
     
     socket.on('task-created', loadStats);
     socket.on('task-updated', loadStats);
     socket.on('task-deleted', loadStats);
     socket.on('task-completed', loadStats);
+    
+    // Eventos de notas de voz
+    voiceSocket.on('new-voice-note', loadStats);
+    voiceSocket.on('voice-note-processed-updated', loadStats);
+    voiceSocket.on('voice-note-deleted', loadStats);
 
     return () => {
       clearInterval(interval);
       socket.disconnect();
+      voiceSocket.disconnect();
     };
   }, []);
+  
+  // Recargar estadísticas cuando cambia el estado del sidebar
+  useEffect(() => {
+    if (sidebarCollapsed) {
+      // Pequeño delay para asegurar que el DOM esté actualizado
+      setTimeout(loadStats, 100);
+    }
+  }, [sidebarCollapsed]);
 
   const currentModule = modules.find(m => m.id === activeModule);
   const ModuleComponent = currentModule?.component;
@@ -209,12 +335,12 @@ const ModernMainDashboard = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex" style={{backgroundColor: '#f9fafb'}}>
-      {/* Sidebar */}
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex relative" style={{backgroundColor: '#f9fafb'}}>
+      {/* Sidebar - Fixed/Sticky */}
       <motion.div 
         className={`${
           sidebarCollapsed ? 'w-20' : 'w-72'
-        } bg-white border-r border-gray-200 flex flex-col transition-all duration-300 shadow-lg`}
+        } bg-white border-r border-gray-200 flex flex-col transition-all duration-300 shadow-lg fixed top-0 left-0 h-screen z-40`}
         initial={false}
         animate={{ width: sidebarCollapsed ? 80 : 288 }}
       >
@@ -311,8 +437,79 @@ const ModernMainDashboard = () => {
                     />
                   )}
                   
-                  <div className={`p-2 bg-gradient-to-r ${module.gradient} rounded-lg flex-shrink-0`}>
+                  <div className={`p-2 bg-gradient-to-r ${module.gradient} rounded-lg flex-shrink-0 relative`}>
                     <Icon className="w-5 h-5 text-white" />
+                    
+                    {/* Badge de notificación tipo iOS para menú contraído */}
+                    <AnimatePresence>
+                      {sidebarCollapsed && (
+                        <>
+                          {/* Dashboard - Notificaciones totales */}
+                          {module.id === 'dashboard' && (
+                            <NotificationBadge 
+                              count={moduleStats.dashboard.notifications} 
+                              color="bg-blue-500" 
+                            />
+                          )}
+                          
+                          {/* Tareas pendientes */}
+                          {module.id === 'todos' && (
+                            <NotificationBadge 
+                              count={moduleStats.todos.pending} 
+                              color="bg-red-500" 
+                            />
+                          )}
+                          
+                          {/* Recordatorios activos */}
+                          {module.id === 'reminders' && (
+                            <NotificationBadge 
+                              count={moduleStats.reminders.active} 
+                              color="bg-orange-500" 
+                            />
+                          )}
+                          
+                          {/* Reuniones próximas */}
+                          {module.id === 'meetings' && (
+                            <NotificationBadge 
+                              count={moduleStats.meetings.upcoming} 
+                              color="bg-cyan-500" 
+                            />
+                          )}
+                          
+                          {/* Notas de voz sin procesar */}
+                          {module.id === 'voice-notes' && (
+                            <NotificationBadge 
+                              count={moduleStats.voiceNotes.unprocessed} 
+                              color="bg-purple-500" 
+                            />
+                          )}
+                          
+                          {/* Intereses no leídos */}
+                          {module.id === 'interests' && (
+                            <NotificationBadge 
+                              count={moduleStats.interests.unread} 
+                              color="bg-yellow-500" 
+                            />
+                          )}
+                          
+                          {/* Cronología - nuevos items */}
+                          {module.id === 'chronology' && moduleStats.chronology.new > 0 && (
+                            <NotificationBadge 
+                              count={moduleStats.chronology.new} 
+                              color="bg-indigo-500" 
+                            />
+                          )}
+                          
+                          {/* Configuración - actualizaciones disponibles */}
+                          {module.id === 'settings' && moduleStats.settings.updates > 0 && (
+                            <NotificationBadge 
+                              count={moduleStats.settings.updates} 
+                              color="bg-gray-600" 
+                            />
+                          )}
+                        </>
+                      )}
+                    </AnimatePresence>
                   </div>
                   
                   {!sidebarCollapsed && (
@@ -347,8 +544,8 @@ const ModernMainDashboard = () => {
 
       </motion.div>
 
-      {/* Área Principal de Contenido */}
-      <div className="flex-1 flex flex-col">
+      {/* Área Principal de Contenido - con margen para el sidebar fijo */}
+      <div className={`flex-1 flex flex-col ${sidebarCollapsed ? 'ml-20' : 'ml-72'} transition-all duration-300`}>
         {/* Contenido del Módulo - Sin headers redundantes */}
         <div className="flex-1 p-6 overflow-auto bg-gradient-to-br from-gray-50 to-gray-100">
           <AnimatePresence mode="wait">
