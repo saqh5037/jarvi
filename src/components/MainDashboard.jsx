@@ -16,7 +16,7 @@ import {
 
 // Importar todos los módulos
 import DashboardStats from './DashboardStats';
-import VoiceNotesModule from './VoiceNotesModule';
+import EnhancedVoiceNotesModule from './EnhancedVoiceNotesModule';
 import RemindersModule from './RemindersModule';
 import TodoModule from './TodoModule';
 import MeetingsModule from './MeetingsModule';
@@ -41,7 +41,7 @@ const MainDashboard = () => {
       id: 'voice-notes', 
       name: 'Notas de Voz', 
       icon: Mic, 
-      component: VoiceNotesModule,
+      component: EnhancedVoiceNotesModule,
       color: 'purple',
       bgColor: 'bg-purple-100',
       textColor: 'text-purple-600',

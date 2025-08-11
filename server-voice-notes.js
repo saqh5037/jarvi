@@ -415,6 +415,94 @@ app.get('/api/voice-notes/processed', async (req, res) => {
   }
 });
 
+// Guardar prompt editado como plantilla
+app.post('/api/voice-notes/save-edited-prompt', async (req, res) => {
+  try {
+    const { name, content, tags, type } = req.body;
+    
+    // Leer prompts existentes
+    const prompts = JSON.parse(await fs.readFile(promptsFile, 'utf8'));
+    
+    // Crear nuevo prompt
+    const newPrompt = {
+      id: `custom_${Date.now()}`,
+      name: name || 'Prompt personalizado',
+      prompt: content,
+      tags: tags || [],
+      type: type || 'custom',
+      icon: '⭐',
+      createdAt: new Date().toISOString(),
+      isCustom: true
+    };
+    
+    // Añadir y guardar
+    prompts.push(newPrompt);
+    await fs.writeFile(promptsFile, JSON.stringify(prompts, null, 2));
+    
+    res.json({ success: true, prompt: newPrompt });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Actualizar prompt existente
+app.put('/api/voice-notes/prompts/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, prompt, tags } = req.body;
+    
+    const prompts = JSON.parse(await fs.readFile(promptsFile, 'utf8'));
+    const index = prompts.findIndex(p => p.id === id);
+    
+    if (index === -1) {
+      return res.status(404).json({ success: false, error: 'Prompt no encontrado' });
+    }
+    
+    // Actualizar solo si es custom
+    if (prompts[index].isCustom) {
+      prompts[index] = {
+        ...prompts[index],
+        name: name || prompts[index].name,
+        prompt: prompt || prompts[index].prompt,
+        tags: tags || prompts[index].tags,
+        updatedAt: new Date().toISOString()
+      };
+      
+      await fs.writeFile(promptsFile, JSON.stringify(prompts, null, 2));
+      res.json({ success: true, prompt: prompts[index] });
+    } else {
+      res.status(403).json({ success: false, error: 'No se pueden editar prompts predefinidos' });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Eliminar prompt personalizado
+app.delete('/api/voice-notes/prompts/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const prompts = JSON.parse(await fs.readFile(promptsFile, 'utf8'));
+    const promptToDelete = prompts.find(p => p.id === id);
+    
+    if (!promptToDelete) {
+      return res.status(404).json({ success: false, error: 'Prompt no encontrado' });
+    }
+    
+    if (!promptToDelete.isCustom) {
+      return res.status(403).json({ success: false, error: 'No se pueden eliminar prompts predefinidos' });
+    }
+    
+    const updatedPrompts = prompts.filter(p => p.id !== id);
+    await fs.writeFile(promptsFile, JSON.stringify(updatedPrompts, null, 2));
+    
+    res.json({ success: true, message: 'Prompt eliminado' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // ==================== WEBSOCKET ====================
 
 io.on('connection', (socket) => {

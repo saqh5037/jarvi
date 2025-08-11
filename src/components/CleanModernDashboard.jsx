@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import ApexCharts from 'react-apexcharts';
-import VoiceNotesModuleDynamic from './VoiceNotesModuleDynamic';
-import VoiceNotesDashboard from './VoiceNotesDashboard';
+import EnhancedVoiceNotesModule from './EnhancedVoiceNotesModule';
 import RemindersModule from './RemindersModule';
 import TodoModule from './TodoModule';
 import MeetingsModule from './MeetingsModule';
@@ -293,7 +292,7 @@ const CleanModernDashboard = () => {
               </div>
               
               {/* Voice Notes Dashboard Integration */}
-              <VoiceNotesDashboard />
+              <EnhancedVoiceNotesModule />
               
               {/* Sankey Diagram Simplificado */}
               <div className="relative h-96">
@@ -396,7 +395,7 @@ const CleanModernDashboard = () => {
         </div>
         ) : activeModule === 'voice' ? (
           /* Voice Notes Module */
-          <VoiceNotesModuleDynamic />
+          <EnhancedVoiceNotesModule />
         ) : activeModule === 'reminders' ? (
           /* Reminders Module */
           <RemindersModule />
@@ -411,7 +410,7 @@ const CleanModernDashboard = () => {
           <InterestsModule />
         ) : (
           /* Default fallback */
-          <VoiceNotesModuleDynamic />
+          <EnhancedVoiceNotesModule />
         )}
       </div>
     </div>

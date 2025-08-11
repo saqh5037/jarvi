@@ -15,14 +15,18 @@ import {
   Brain,
   Zap,
   Package,
-  GitBranch
+  GitBranch,
+  Edit3
 } from 'lucide-react';
+import PromptEditor from './PromptEditor';
 
 const PromptGenerator = ({ transcription, onClose }) => {
   const [selectedType, setSelectedType] = useState(null);
   const [generatedPrompt, setGeneratedPrompt] = useState('');
   const [copied, setCopied] = useState(false);
   const [customContext, setCustomContext] = useState('');
+  const [showPromptEditor, setShowPromptEditor] = useState(false);
+  const [editablePrompt, setEditablePrompt] = useState('');
 
   const promptTypes = [
     {
@@ -622,7 +626,19 @@ Proporciona:
             <div className="space-y-4">
               {/* Área del prompt generado */}
               <div className="bg-gray-800 rounded-xl p-6 relative">
-                <div className="absolute top-4 right-4">
+                <div className="absolute top-4 right-4 flex gap-2">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      setEditablePrompt(generatedPrompt);
+                      setShowPromptEditor(true);
+                    }}
+                    className="px-4 py-2 rounded-lg font-medium bg-indigo-500 text-white hover:bg-indigo-600 transition-all flex items-center gap-2"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                    Editar
+                  </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -641,7 +657,7 @@ Proporciona:
                     ) : (
                       <>
                         <Copy className="w-4 h-4" />
-                        Copiar Prompt
+                        Copiar
                       </>
                     )}
                   </motion.button>
@@ -676,6 +692,34 @@ Proporciona:
           )}
         </div>
       </motion.div>
+
+      {/* Modal del Editor de Prompt */}
+      {showPromptEditor && (
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60] overflow-y-auto"
+          onClick={(e) => {
+            // Solo cerrar si se hace click en el fondo
+            if (e.target === e.currentTarget) {
+              setShowPromptEditor(false);
+            }
+          }}
+        >
+          <div className="w-full max-w-4xl my-8" onClick={(e) => e.stopPropagation()}>
+            <PromptEditor
+              initialPrompt={editablePrompt}
+              onSave={(editedPrompt) => {
+                setGeneratedPrompt(editedPrompt);
+                setShowPromptEditor(false);
+                setCopied(false);
+              }}
+              onCancel={() => setShowPromptEditor(false)}
+              title="Editar Prompt Generado"
+              context={transcription || customContext}
+              promptType={selectedType}
+            />
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 };

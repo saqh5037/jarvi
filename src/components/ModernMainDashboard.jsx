@@ -14,7 +14,8 @@ import {
   Search,
   Plus,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Clock
 } from 'lucide-react';
 
 // Importar todos los módulos
@@ -25,6 +26,7 @@ import TodoModuleFixed from './TodoModuleFixed';
 import EnhancedMeetingsModule from './EnhancedMeetingsModule';
 import InterestsModule from './InterestsModule';
 import SettingsModule from './SettingsModule';
+import ProjectChronologyModule from './ProjectChronologyModule';
 
 const ModernMainDashboard = () => {
   const [activeModule, setActiveModule] = useState('dashboard');
@@ -87,6 +89,15 @@ const ModernMainDashboard = () => {
       description: 'Artículos y contenido guardado',
       gradient: 'from-yellow-500 to-orange-600',
       stats: '24 guardados'
+    },
+    { 
+      id: 'chronology', 
+      name: 'Cronología', 
+      icon: Clock, 
+      component: ProjectChronologyModule,
+      description: 'Historial de proyectos y aprendizajes',
+      gradient: 'from-indigo-500 to-purple-600',
+      stats: 'Nuevo'
     },
     { 
       id: 'settings', 

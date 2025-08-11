@@ -26,12 +26,16 @@ import {
   TrendingUp,
   ChevronDown,
   ChevronUp,
-  Wand2
+  Wand2,
+  Search,
+  List
 } from 'lucide-react';
 import io from 'socket.io-client';
 import axios from 'axios';
 import VoiceNotesProcessor from './VoiceNotesProcessor';
 import PromptGenerator from './PromptGenerator';
+import VoiceNotesSearch from './VoiceNotesSearch';
+import AutoPromptGenerator from './AutoPromptGenerator';
 import { API_ENDPOINTS, SOCKET_URLS } from '../config/api';
 
 const EnhancedVoiceNotesModule = () => {
@@ -52,6 +56,9 @@ const EnhancedVoiceNotesModule = () => {
     provider: 'Gemini AI'
   });
   const [realtimeTranscription, setRealtimeTranscription] = useState({});
+  const [activeTab, setActiveTab] = useState('notes'); // 'notes' o 'search'
+  const [showAutoPromptGenerator, setShowAutoPromptGenerator] = useState(false);
+  const [selectedNoteForAutoPrompt, setSelectedNoteForAutoPrompt] = useState(null);
   
   const audioRef = useRef(null);
   const socketRef = useRef(null);
@@ -444,14 +451,48 @@ const EnhancedVoiceNotesModule = () => {
         </motion.div>
       </div>
       
-      {/* Lista de Notas de Voz */}
+      {/* Tabs para Lista y Búsqueda */}
       <div className="bg-white rounded-2xl shadow-lg">
         <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Notas de Voz Recientes ({voiceNotes.length})</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900">
+              {activeTab === 'notes' ? `Notas de Voz Recientes (${voiceNotes.length})` : 'Búsqueda en Notas'}
+            </h3>
+            
+            {/* Tab Switcher */}
+            <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
+              <button
+                onClick={() => setActiveTab('notes')}
+                className={`px-4 py-2 rounded-md flex items-center gap-2 transition-all ${
+                  activeTab === 'notes' 
+                    ? 'bg-white text-purple-600 shadow-sm' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <List className="w-4 h-4" />
+                <span className="text-sm font-medium">Lista</span>
+              </button>
+              
+              <button
+                onClick={() => setActiveTab('search')}
+                className={`px-4 py-2 rounded-md flex items-center gap-2 transition-all ${
+                  activeTab === 'search' 
+                    ? 'bg-white text-purple-600 shadow-sm' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Search className="w-4 h-4" />
+                <span className="text-sm font-medium">Buscar</span>
+              </button>
+            </div>
+          </div>
         </div>
         
         <div className="p-6">
-          {voiceNotes.length === 0 ? (
+          {activeTab === 'notes' ? (
+            // Lista de notas existente
+            <>
+              {voiceNotes.length === 0 ? (
             <div className="text-center py-12">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
                 <Mic className="w-8 h-8 text-purple-600" />
@@ -470,6 +511,7 @@ const EnhancedVoiceNotesModule = () => {
                 {voiceNotes.map((note) => (
                   <motion.div
                     key={note.id}
+                    id={`note-${note.id}`}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
@@ -630,6 +672,17 @@ const EnhancedVoiceNotesModule = () => {
                         </button>
                         
                         <button
+                          onClick={() => {
+                            setSelectedNoteForAutoPrompt(note);
+                            setShowAutoPromptGenerator(true);
+                          }}
+                          className="p-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-all"
+                          title="Auto Generar Prompts para Módulos"
+                        >
+                          <Wand2 className="w-4 h-4" />
+                        </button>
+                        
+                        <button
                           onClick={() => window.open(`${API_ENDPOINTS.ENHANCED_NOTES}/voice-notes/${note.fileName}`, '_blank')}
                           className="p-2 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-all"
                           title="Descargar"
@@ -650,6 +703,30 @@ const EnhancedVoiceNotesModule = () => {
                 ))}
               </AnimatePresence>
             </div>
+          )}
+            </>
+          ) : (
+            // Tab de búsqueda
+            <VoiceNotesSearch 
+              notes={voiceNotes}
+              onNoteSelect={(note) => {
+                // Cambiar a tab de notas y reproducir la nota seleccionada
+                setActiveTab('notes');
+                playVoiceNote(note);
+                // Expandir la nota si tiene transcripción
+                if (note.transcription) {
+                  setExpandedNotes(prev => new Set([...prev, note.id]));
+                }
+                // Scroll to note
+                setTimeout(() => {
+                  const element = document.getElementById(`note-${note.id}`);
+                  if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }
+                }, 100);
+              }}
+              currentAudioUrl={currentlyPlaying ? voiceNotes.find(n => n.id === currentlyPlaying)?.url : null}
+            />
           )}
         </div>
       </div>
@@ -783,6 +860,25 @@ const EnhancedVoiceNotesModule = () => {
             onClose={() => {
               setShowPromptGenerator(false);
               setSelectedNoteForPrompt(null);
+            }}
+          />
+        </AnimatePresence>
+      )}
+      
+      {/* Auto Prompt Generator Modal */}
+      {showAutoPromptGenerator && selectedNoteForAutoPrompt && (
+        <AnimatePresence>
+          <AutoPromptGenerator
+            transcription={selectedNoteForAutoPrompt.transcription || ''}
+            voiceNote={selectedNoteForAutoPrompt}
+            onPromptsGenerated={(prompts) => {
+              console.log('Prompts generados:', prompts);
+              // Aquí puedes hacer algo con los prompts generados
+              // Por ejemplo, guardarlos o enviarlos a los módulos correspondientes
+            }}
+            onClose={() => {
+              setShowAutoPromptGenerator(false);
+              setSelectedNoteForAutoPrompt(null);
             }}
           />
         </AnimatePresence>

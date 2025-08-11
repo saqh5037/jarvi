@@ -18,11 +18,13 @@ import {
   Code,
   Users,
   ListChecks,
-  Send
+  Send,
+  Edit3
 } from 'lucide-react';
 import axios from 'axios';
 import io from 'socket.io-client';
 import { API_ENDPOINTS, SOCKET_URLS } from '../config/api';
+import PromptEditor from './PromptEditor';
 
 const VOICE_SERVER = API_ENDPOINTS.VOICE_NOTES_SERVER;
 
@@ -38,6 +40,9 @@ const VoiceNotesProcessor = ({ voiceNote }) => {
   const [showCustomPromptModal, setShowCustomPromptModal] = useState(false);
   const [socket, setSocket] = useState(null);
   const [activeTab, setActiveTab] = useState('process'); // process, improve, share
+  const [showPromptEditor, setShowPromptEditor] = useState(false);
+  const [editingPromptType, setEditingPromptType] = useState(null);
+  const [editablePrompt, setEditablePrompt] = useState('');
 
   // Iconos para los tipos de prompt
   const promptIcons = {
@@ -89,7 +94,7 @@ const VoiceNotesProcessor = ({ voiceNote }) => {
     }
   };
 
-  const processWithPrompt = async (promptType = null) => {
+  const processWithPrompt = async (promptType = null, editedPromptText = null) => {
     if (!voiceNote?.transcription && !voiceNote?.text) return;
     
     setIsProcessing(true);
@@ -98,7 +103,7 @@ const VoiceNotesProcessor = ({ voiceNote }) => {
         noteId: voiceNote.id,
         transcription: voiceNote.transcription || voiceNote.text,
         promptType: promptType || selectedPrompt,
-        customPrompt: customPrompt || null
+        customPrompt: editedPromptText || customPrompt || null
       });
       
       if (response.data.success) {
@@ -109,6 +114,22 @@ const VoiceNotesProcessor = ({ voiceNote }) => {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleEditPrompt = (promptId) => {
+    const prompt = prompts.find(p => p.id === promptId);
+    if (prompt) {
+      const fullPrompt = `${prompt.prompt}\n\nTranscripción:\n${voiceNote?.transcription || voiceNote?.text || ''}`;
+      setEditablePrompt(fullPrompt);
+      setEditingPromptType(promptId);
+      setShowPromptEditor(true);
+    }
+  };
+
+  const handleSaveEditedPrompt = (editedPrompt) => {
+    setShowPromptEditor(false);
+    processWithPrompt(editingPromptType, editedPrompt);
+    setEditingPromptType(null);
   };
 
   const improveForClaude = async () => {
@@ -239,25 +260,38 @@ const VoiceNotesProcessor = ({ voiceNote }) => {
             </label>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
               {prompts.map(prompt => (
-                <motion.button
+                <motion.div
                   key={prompt.id}
                   whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    setSelectedPrompt(prompt.id);
-                    processWithPrompt(prompt.id);
-                  }}
-                  className={`p-3 rounded-lg border transition-all ${
+                  className={`relative rounded-lg border transition-all ${
                     selectedPrompt === prompt.id
                       ? 'bg-purple-600/30 border-purple-500'
                       : 'bg-gray-800/50 border-gray-700 hover:border-purple-500/50'
                   }`}
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{prompt.icon}</span>
-                    <span className="text-sm text-white">{prompt.name}</span>
-                  </div>
-                </motion.button>
+                  <button
+                    onClick={() => {
+                      setSelectedPrompt(prompt.id);
+                      processWithPrompt(prompt.id);
+                    }}
+                    className="w-full p-3 rounded-lg transition-all"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{prompt.icon}</span>
+                      <span className="text-sm text-white">{prompt.name}</span>
+                    </div>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditPrompt(prompt.id);
+                    }}
+                    className="absolute top-1 right-1 p-1 bg-gray-700/50 hover:bg-purple-600/50 rounded-md transition-colors z-10"
+                    title="Editar prompt antes de procesar"
+                  >
+                    <Edit3 className="w-3 h-3 text-gray-300 hover:text-white" />
+                  </button>
+                </motion.div>
               ))}
               
               {/* Botón para prompt personalizado */}
@@ -588,6 +622,34 @@ const VoiceNotesProcessor = ({ voiceNote }) => {
               </button>
             </div>
           </motion.div>
+        </div>
+      )}
+
+      {/* Modal del Editor de Prompt */}
+      {showPromptEditor && (
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto"
+          onClick={(e) => {
+            // Solo cerrar si se hace click en el fondo, no en el contenido
+            if (e.target === e.currentTarget) {
+              setShowPromptEditor(false);
+              setEditingPromptType(null);
+            }
+          }}
+        >
+          <div className="w-full max-w-4xl my-8" onClick={(e) => e.stopPropagation()}>
+            <PromptEditor
+              initialPrompt={editablePrompt}
+              onSave={handleSaveEditedPrompt}
+              onCancel={() => {
+                setShowPromptEditor(false);
+                setEditingPromptType(null);
+              }}
+              title="Editar Prompt antes de Procesar"
+              context={voiceNote?.transcription || voiceNote?.text || ''}
+              promptType={editingPromptType}
+            />
+          </div>
         </div>
       )}
     </div>
