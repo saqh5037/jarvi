@@ -24,7 +24,7 @@ import {
   Activity
 } from 'lucide-react';
 
-const VoiceNotesSearch = ({ notes = [], onNoteSelect, currentAudioUrl }) => {
+const VoiceNotesSearch = ({ notes = [], onNoteSelect, onNavigateToNote, currentAudioUrl }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -727,10 +727,22 @@ const VoiceNotesSearch = ({ notes = [], onNoteSelect, currentAudioUrl }) => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
+                          onNavigateToNote && onNavigateToNote(result.note);
+                        }}
+                        className="p-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors flex items-center gap-1"
+                        title="Ver en lista de notas"
+                      >
+                        <FileText className="w-3 h-3" />
+                        <span className="text-xs">Ver Nota</span>
+                      </button>
+                      
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
                           onNoteSelect && onNoteSelect(result.note);
                         }}
                         className="p-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded transition-colors"
-                        title="Abrir nota"
+                        title="Reproducir audio"
                       >
                         <Play className="w-4 h-4" />
                       </button>

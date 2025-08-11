@@ -35,7 +35,10 @@ import {
   X,
   Check,
   CheckSquare,
-  Square
+  Square,
+  Copy,
+  RefreshCw,
+  Sparkles as SparklesIcon
 } from 'lucide-react';
 import io from 'socket.io-client';
 import axios from 'axios';
@@ -69,10 +72,32 @@ const EnhancedVoiceNotesModule = () => {
   const [editingNoteId, setEditingNoteId] = useState(null); // ID de la nota siendo editada
   const [editingText, setEditingText] = useState(''); // Texto temporal de edición
   const [showProcessed, setShowProcessed] = useState(true); // Mostrar/ocultar notas procesadas
+  const [promptGeneratingFor, setPromptGeneratingFor] = useState(null); // ID de nota generando prompt
+  const [generatedPrompts, setGeneratedPrompts] = useState({}); // Prompts generados por nota ID
+  const [editingPromptFor, setEditingPromptFor] = useState(null); // ID de nota editando prompt
+  const [highlightedNoteId, setHighlightedNoteId] = useState(null); // ID de nota a destacar
+  const [scrollToNoteId, setScrollToNoteId] = useState(null); // ID de nota para hacer scroll
   
   const audioRef = useRef(null);
   const socketRef = useRef(null);
   const editTextareaRef = useRef(null);
+  
+  // Efecto para hacer scroll a la nota cuando cambia scrollToNoteId
+  useEffect(() => {
+    if (scrollToNoteId) {
+      setTimeout(() => {
+        const element = document.getElementById(`note-${scrollToNoteId}`);
+        if (element) {
+          element.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center',
+            inline: 'nearest'
+          });
+        }
+        setScrollToNoteId(null);
+      }, 100); // Pequeño delay para asegurar que el DOM está actualizado
+    }
+  }, [scrollToNoteId]);
   
   useEffect(() => {
     // Conectar con Socket.io
@@ -351,6 +376,132 @@ const EnhancedVoiceNotesModule = () => {
     }
   };
   
+  // Función para generar prompt con IA
+  const generatePromptForNote = async (note) => {
+    if (!note.transcription) {
+      console.error('La nota no tiene transcripción');
+      return;
+    }
+
+    setPromptGeneratingFor(note.id);
+    
+    try {
+      const response = await axios.post('http://localhost:3005/api/generate-prompt', {
+        text: note.transcription,
+        context: 'voice_note',
+        type: 'optimized'
+      });
+
+      if (response.data.success) {
+        const generatedPrompt = response.data.prompt;
+        
+        // Guardar el prompt generado
+        setGeneratedPrompts(prev => ({
+          ...prev,
+          [note.id]: generatedPrompt
+        }));
+        
+        // Activar modo edición automáticamente
+        setEditingPromptFor(note.id);
+      }
+    } catch (error) {
+      console.error('Error generando prompt:', error);
+      // Fallback: generar prompt básico localmente
+      const basicPrompt = `Analiza y procesa la siguiente nota de voz:\n\n"${note.transcription}"\n\n¿Cuáles son los puntos clave y acciones a tomar?`;
+      
+      setGeneratedPrompts(prev => ({
+        ...prev,
+        [note.id]: basicPrompt
+      }));
+      
+      setEditingPromptFor(note.id);
+    } finally {
+      setPromptGeneratingFor(null);
+    }
+  };
+
+  // Función para guardar prompt en cronología
+  const savePromptToChronology = async (noteId) => {
+    const prompt = generatedPrompts[noteId];
+    const note = voiceNotes.find(n => n.id === noteId);
+    if (!prompt || !note) return;
+
+    try {
+      // Crear entrada para cronología
+      const chronologyEntry = {
+        id: Date.now(),
+        title: `Prompt: ${note.transcription?.substring(0, 50)}...`,
+        prompt,
+        sourceNoteId: noteId,
+        sourceTranscription: note.transcription,
+        timestamp: new Date().toISOString(),
+        type: 'voice_note_prompt',
+        category: 'ai_prompts'
+      };
+
+      // Guardar en localStorage para el módulo de cronología
+      const existingChronology = JSON.parse(localStorage.getItem('jarvi-chronology') || '[]');
+      existingChronology.unshift(chronologyEntry);
+      localStorage.setItem('jarvi-chronology', JSON.stringify(existingChronology));
+      
+      // También guardar en servidor si existe endpoint
+      try {
+        await axios.post('http://localhost:3001/api/chronology', chronologyEntry);
+      } catch (err) {
+        console.log('Guardado solo localmente');
+      }
+      
+      console.log('✅ Prompt guardado en cronología');
+      
+      // Limpiar estado de edición
+      setEditingPromptFor(null);
+      
+      // Feedback visual
+      const originalText = generatedPrompts[noteId];
+      setGeneratedPrompts(prev => ({
+        ...prev,
+        [noteId]: '✅ Guardado en cronología!'
+      }));
+      
+      setTimeout(() => {
+        setGeneratedPrompts(prev => ({
+          ...prev,
+          [noteId]: originalText
+        }));
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Error guardando prompt:', error);
+    }
+  };
+
+  // Función para copiar prompt al portapapeles
+  const copyPromptToClipboard = async (noteId) => {
+    const prompt = generatedPrompts[noteId];
+    if (!prompt) return;
+
+    try {
+      await navigator.clipboard.writeText(prompt);
+      console.log('📋 Prompt copiado al portapapeles');
+      
+      // Feedback visual temporal
+      const originalText = generatedPrompts[noteId];
+      setGeneratedPrompts(prev => ({
+        ...prev,
+        [noteId]: '📋 ¡Copiado al portapapeles!'
+      }));
+      
+      setTimeout(() => {
+        setGeneratedPrompts(prev => ({
+          ...prev,
+          [noteId]: originalText
+        }));
+      }, 1500);
+    } catch (error) {
+      console.error('Error copiando al portapapeles:', error);
+    }
+  };
+
   // Función para marcar nota como procesada/completada
   const toggleNoteProcessed = async (noteId) => {
     try {
@@ -544,10 +695,10 @@ const EnhancedVoiceNotesModule = () => {
         </motion.div>
       </div>
       
-      {/* Tabs para Lista y Búsqueda */}
+      {/* Tabs para Lista y Búsqueda con Botones de Procesamiento */}
       <div className="bg-white rounded-2xl shadow-lg">
         <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">
               {activeTab === 'notes' ? `Notas de Voz Recientes (${voiceNotes.length})` : 'Búsqueda en Notas'}
             </h3>
@@ -577,6 +728,20 @@ const EnhancedVoiceNotesModule = () => {
                 <Search className="w-4 h-4" />
                 <span className="text-sm font-medium">Buscar</span>
               </button>
+            </div>
+          </div>
+          
+          {/* Indicador de notas pendientes */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="ml-auto flex items-center gap-2 text-sm text-gray-600">
+              <div className="flex items-center gap-1">
+                <Square className="w-4 h-4 text-orange-500" />
+                <span>{voiceNotes.filter(n => !n.processed).length} pendientes</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <CheckSquare className="w-4 h-4 text-green-500" />
+                <span>{voiceNotes.filter(n => n.processed).length} procesadas</span>
+              </div>
             </div>
           </div>
         </div>
@@ -631,9 +796,11 @@ const EnhancedVoiceNotesModule = () => {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
                     className={`rounded-xl p-4 transition-all ${
-                      note.processed 
-                        ? 'bg-green-50 border border-green-200 opacity-75' 
-                        : 'bg-gray-50 hover:bg-gray-100'
+                      highlightedNoteId === note.id
+                        ? 'bg-indigo-100 border-2 border-indigo-500 shadow-lg ring-4 ring-indigo-200 animate-pulse'
+                        : note.processed 
+                          ? 'bg-green-50 border border-green-200 opacity-75' 
+                          : 'bg-gray-50 hover:bg-gray-100'
                     }`}
                   >
                     <div className="flex items-start justify-between">
@@ -892,6 +1059,7 @@ const EnhancedVoiceNotesModule = () => {
                                     )}
                                   </div>
                                   <div className="mt-3">
+                                    {/* Botón ver transcripción original */}
                                     <button
                                       onClick={() => window.open(`${API_ENDPOINTS.ENHANCED_NOTES}/voice-notes/${note.fileName}.txt`, '_blank')}
                                       className="px-3 py-1 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700 transition-colors flex items-center gap-2 inline-flex"
@@ -936,39 +1104,19 @@ const EnhancedVoiceNotesModule = () => {
                           )}
                         </button>
                         
-                        {/* Botón de procesamiento inteligente con IA */}
-                        <button
-                          onClick={() => {
-                            setSelectedNoteForProcessing(note);
-                            setShowProcessor(true);
-                          }}
-                          className="p-2 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-all"
-                          title="Procesar con IA"
-                        >
-                          <Wand2 className="w-4 h-4" />
-                        </button>
-                        
-                        <button
-                          onClick={() => {
-                            setSelectedNoteForPrompt(note);
-                            setShowPromptGenerator(true);
-                          }}
-                          className="p-2 text-pink-600 hover:text-pink-700 hover:bg-pink-50 rounded-lg transition-all"
-                          title="Generar Prompt Optimizado"
-                        >
-                          <Sparkles className="w-4 h-4" />
-                        </button>
-                        
-                        <button
-                          onClick={() => {
-                            setSelectedNoteForAutoPrompt(note);
-                            setShowAutoPromptGenerator(true);
-                          }}
-                          className="p-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-all"
-                          title="Auto Generar Prompts para Módulos"
-                        >
-                          <Wand2 className="w-4 h-4" />
-                        </button>
+                        {/* Botón de Generar Prompt individual */}
+                        {note.transcription && (
+                          <button
+                            onClick={() => {
+                              setSelectedNoteForPrompt(note);
+                              setShowPromptGenerator(true);
+                            }}
+                            className="p-2 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-all"
+                            title="Generar Prompt Optimizado"
+                          >
+                            <Wand2 className="w-4 h-4" />
+                          </button>
+                        )}
                         
                         <button
                           onClick={() => window.open(`${API_ENDPOINTS.ENHANCED_NOTES}/voice-notes/${note.fileName}`, '_blank')}
@@ -998,13 +1146,24 @@ const EnhancedVoiceNotesModule = () => {
             <VoiceNotesSearch 
               notes={voiceNotes}
               onNoteSelect={(note) => {
-                // Cambiar a tab de notas y reproducir la nota seleccionada
-                setActiveTab('notes');
+                // Reproducir la nota seleccionada
                 playVoiceNote(note);
+              }}
+              onNavigateToNote={(note) => {
+                // Cambiar a tab de notas
+                setActiveTab('notes');
+                // Destacar la nota
+                setHighlightedNoteId(note.id);
                 // Expandir la nota si tiene transcripción
                 if (note.transcription) {
                   setExpandedNotes(prev => new Set([...prev, note.id]));
                 }
+                // Hacer scroll a la nota
+                setScrollToNoteId(note.id);
+                // Quitar el highlight después de 3 segundos
+                setTimeout(() => {
+                  setHighlightedNoteId(null);
+                }, 3000);
                 // Scroll to note
                 setTimeout(() => {
                   const element = document.getElementById(`note-${note.id}`);

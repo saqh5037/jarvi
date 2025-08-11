@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import ProjectDetector from './ProjectDetector';
 import PromptNameGenerator from './PromptNameGenerator';
+import classificationService from '../services/PromptClassificationService';
 
 const PromptEditor = ({ 
   initialPrompt = '', 
@@ -153,7 +154,7 @@ const PromptEditor = ({
     }, 0);
   };
 
-  const savePromptTemplate = () => {
+  const savePromptTemplate = async () => {
     // Usar el nombre generado o el personalizado
     const finalName = promptName || generatedName;
     if (!finalName.trim()) return;
@@ -162,6 +163,19 @@ const PromptEditor = ({
     
     // Usar los tags generados si no hay tags seleccionados manualmente
     const finalTags = selectedTags.length > 0 ? selectedTags : generatedTags;
+    
+    // Preparar contexto para la clasificación
+    const classificationContext = {
+      currentProject: selectedProject?.name || projectId,
+      tags: finalTags,
+      promptType: promptType
+    };
+    
+    // Realizar clasificación automática
+    const classification = await classificationService.classifyPrompt(
+      editedPrompt,
+      classificationContext
+    );
 
     const newPrompt = {
       id: Date.now().toString(),
@@ -173,7 +187,7 @@ const PromptEditor = ({
       createdAt: new Date().toISOString(),
       lastUsed: new Date().toISOString(),
       useCount: 0,
-      classification: window.lastClassification || null
+      classification: classification // Usar clasificación automática
     };
 
     const updated = [...savedPrompts, newPrompt];
@@ -195,7 +209,9 @@ const PromptEditor = ({
       result: '',
       timeSpent: 0,
       isSuccessful: false,
-      name: promptName
+      name: promptName,
+      classification: classification, // Agregar clasificación automática
+      autoClassified: true
     };
     chronologyPrompts.push(chronologyEntry);
     localStorage.setItem('jarvi_chronology_prompts', JSON.stringify(chronologyPrompts));
@@ -229,9 +245,22 @@ const PromptEditor = ({
     localStorage.setItem('jarvi_saved_prompts', JSON.stringify(updated));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (editedPrompt.trim()) {
       addToHistory(editedPrompt);
+      
+      // Preparar contexto para la clasificación
+      const classificationContext = {
+        currentProject: selectedProject?.name || localStorage.getItem('jarvi_active_project') || 'jarvi-main',
+        tags: selectedTags,
+        promptType: promptType
+      };
+      
+      // Realizar clasificación automática
+      const classification = await classificationService.classifyPrompt(
+        editedPrompt,
+        classificationContext
+      );
       
       // Guardar automáticamente en la cronología cuando se aplica un prompt
       const chronologyPrompts = JSON.parse(localStorage.getItem('jarvi_chronology_prompts') || '[]');
@@ -248,7 +277,9 @@ const PromptEditor = ({
         result: '',
         timeSpent: 0,
         isSuccessful: false,
-        context: context || ''
+        context: context || '',
+        classification: classification, // Agregar clasificación automática
+        autoClassified: true
       };
       chronologyPrompts.push(chronologyEntry);
       localStorage.setItem('jarvi_chronology_prompts', JSON.stringify(chronologyPrompts));
@@ -345,6 +376,17 @@ const PromptEditor = ({
           >
             {isEditing ? <FileText className="w-4 h-4 text-gray-400" /> : <Edit3 className="w-4 h-4 text-gray-400" />}
           </button>
+          
+          {/* Botón de cerrar */}
+          {onCancel && (
+            <button
+              onClick={onCancel}
+              className="ml-2 p-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 transition-colors"
+              title="Cerrar"
+            >
+              <X className="w-4 h-4 text-red-400" />
+            </button>
+          )}
         </div>
       </div>
 

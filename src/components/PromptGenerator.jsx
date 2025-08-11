@@ -30,6 +30,27 @@ const PromptGenerator = ({ transcription, onClose }) => {
 
   const promptTypes = [
     {
+      id: 'optimize_voice',
+      name: 'Optimizar Nota de Voz',
+      icon: Edit3,
+      color: 'from-emerald-500 to-green-600',
+      description: 'Limpia muletillas y prepara para edición'
+    },
+    {
+      id: 'compact',
+      name: 'Generar Prompt Compacto',
+      icon: Zap,
+      color: 'from-amber-500 to-orange-600',
+      description: 'Prompt directo y conciso'
+    },
+    {
+      id: 'claude',
+      name: 'Generar Prompt Optimizado para Claude',
+      icon: Sparkles,
+      color: 'from-violet-500 to-purple-600',
+      description: 'Optimizado específicamente para Claude AI'
+    },
+    {
       id: 'mockup',
       name: 'Generar Mockup',
       icon: Layout,
@@ -73,10 +94,111 @@ const PromptGenerator = ({ transcription, onClose }) => {
     }
   ];
 
+  // Función para limpiar muletillas y palabras de relleno
+  const cleanVoiceNote = (text) => {
+    if (!text) return '';
+    
+    // Lista de muletillas y palabras de relleno comunes en español
+    const muletillas = [
+      'este', 'eh', 'ah', 'hm', 'hmm', 'uhm', 'um', 'uh',
+      'bueno', 'pues', 'entonces', 'o sea', 'es decir',
+      'verdad', 'sabes', 'mira', 'fíjate', 'oye',
+      'como que', 'así como', 'tipo', 'como', 'así',
+      'no sé', 'digamos', 'básicamente', 'literalmente',
+      'obviamente', 'realmente', 'simplemente', 'prácticamente'
+    ];
+    
+    let cleanedText = text;
+    
+    // Eliminar muletillas al inicio de oraciones
+    muletillas.forEach(muletilla => {
+      // Al inicio del texto
+      const regexInicio = new RegExp(`^${muletilla}[,\\s]+`, 'gi');
+      cleanedText = cleanedText.replace(regexInicio, '');
+      
+      // Después de puntos
+      const regexDespuesPunto = new RegExp(`\\.\\s+${muletilla}[,\\s]+`, 'gi');
+      cleanedText = cleanedText.replace(regexDespuesPunto, '. ');
+      
+      // Muletillas repetidas o aisladas
+      const regexAislada = new RegExp(`\\b${muletilla}[,\\s]+${muletilla}\\b`, 'gi');
+      cleanedText = cleanedText.replace(regexAislada, '');
+      
+      // Muletillas entre comas
+      const regexEntreComas = new RegExp(`,\\s*${muletilla}\\s*,`, 'gi');
+      cleanedText = cleanedText.replace(regexEntreComas, ',');
+    });
+    
+    // Limpiar espacios múltiples y comas redundantes
+    cleanedText = cleanedText
+      .replace(/\s+/g, ' ') // Múltiples espacios a uno solo
+      .replace(/,\s*,+/g, ',') // Comas múltiples
+      .replace(/\.\s*\./g, '.') // Puntos múltiples
+      .replace(/^\s*,\s*/g, '') // Coma al inicio
+      .replace(/\s+([.,!?])/g, '$1') // Espacios antes de puntuación
+      .replace(/([.,!?])\s*$/g, '$1') // Limpiar final
+      .trim();
+    
+    // Capitalizar inicio de oraciones
+    cleanedText = cleanedText
+      .replace(/^./, str => str.toUpperCase())
+      .replace(/\.\s+./g, str => str.toUpperCase());
+    
+    return cleanedText;
+  };
+
   const generatePromptForType = (type) => {
     const baseContext = transcription || customContext;
     
     const templates = {
+      optimize_voice: cleanVoiceNote(baseContext),
+      compact: `Contexto: ${baseContext}
+
+Tarea: Analiza lo anterior y proporciona una solución directa y práctica.
+
+Requisitos:
+- Respuesta concisa y al punto
+- Solo información esencial
+- Pasos claros si aplica
+- Sin explicaciones extensas
+
+Entrega el resultado de forma directa.`,
+      claude: `# Prompt Optimizado para Claude AI
+
+## Contexto de la Solicitud
+${baseContext}
+
+## Instrucciones Específicas para Claude
+
+### Objetivo Principal
+Analiza el contexto proporcionado y ayúdame a desarrollar una solución completa y bien estructurada.
+
+### Consideraciones Importantes
+1. **Análisis Profundo**: Examina todos los aspectos relevantes del contexto
+2. **Solución Estructurada**: Organiza tu respuesta de manera clara y lógica
+3. **Código Limpio**: Si generas código, asegúrate de que sea limpio, comentado y siguiendo mejores prácticas
+4. **Explicaciones Claras**: Proporciona explicaciones cuando sea necesario
+5. **Formato Markdown**: Usa formato markdown para mejor legibilidad
+
+### Requerimientos Específicos
+- Prioriza la claridad y precisión en tu respuesta
+- Si hay múltiples soluciones posibles, menciona las alternativas
+- Incluye ejemplos prácticos cuando sea relevante
+- Considera edge cases y posibles problemas
+- Sugiere mejoras o optimizaciones cuando sea apropiado
+
+### Formato de Respuesta Esperado
+1. **Resumen Ejecutivo**: Breve descripción de lo que se va a hacer
+2. **Implementación Detallada**: Desarrollo completo de la solución
+3. **Consideraciones Adicionales**: Aspectos importantes a tener en cuenta
+4. **Próximos Pasos**: Sugerencias para continuar o mejorar
+
+### Contexto Adicional
+- Estoy trabajando en el proyecto JARVI
+- El objetivo es obtener la mejor solución posible
+- Valoro la eficiencia y las buenas prácticas
+
+Por favor, procesa esta información y proporciona una respuesta completa y útil.`,
       mockup: `# Prompt para Generación de Mockup
 
 ## Contexto del Proyecto
@@ -495,11 +617,19 @@ Proporciona:
 
     const prompt = templates[type] || '';
     setGeneratedPrompt(prompt);
+    return prompt;
   };
 
   const handleGeneratePrompt = () => {
     if (selectedType) {
-      generatePromptForType(selectedType);
+      const prompt = generatePromptForType(selectedType);
+      setGeneratedPrompt(prompt);
+      
+      // Si es optimización de voz, abrir directamente el editor
+      if (selectedType === 'optimize_voice') {
+        setEditablePrompt(prompt);
+        setShowPromptEditor(true);
+      }
     }
   };
 
@@ -696,7 +826,7 @@ Proporciona:
       {/* Modal del Editor de Prompt */}
       {showPromptEditor && (
         <div 
-          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60] overflow-y-auto"
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-[60] overflow-y-auto"
           onClick={(e) => {
             // Solo cerrar si se hace click en el fondo
             if (e.target === e.currentTarget) {
@@ -704,7 +834,7 @@ Proporciona:
             }
           }}
         >
-          <div className="w-full max-w-4xl my-8" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-6xl max-h-[95vh] overflow-y-auto my-4 animate-fadeIn" onClick={(e) => e.stopPropagation()}>
             <PromptEditor
               initialPrompt={editablePrompt}
               onSave={(editedPrompt) => {

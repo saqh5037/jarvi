@@ -14,6 +14,7 @@ import {
   Filter,
   ChevronRight,
   ChevronDown,
+  ChevronUp,
   Brain,
   Lightbulb,
   Code,
@@ -36,9 +37,14 @@ import {
   FileText,
   RefreshCw,
   Download,
-  Upload
+  Upload,
+  Sparkles,
+  Folder,
+  Flag,
+  X
 } from 'lucide-react';
 import axios from 'axios';
+import PromptClassifier from './PromptClassifier';
 
 const ProjectChronologyModule = () => {
   // Estados principales
@@ -51,9 +57,21 @@ const ProjectChronologyModule = () => {
   const [selectedTags, setSelectedTags] = useState([]);
   const [dateRange, setDateRange] = useState({ start: null, end: null });
   
+  // Estados para filtros de clasificación
+  const [filterRating, setFilterRating] = useState(0); // 0 = todos, 1-5 = filtrar por rating
+  const [filterCategory, setFilterCategory] = useState(''); // vacío = todas
+  const [filterPriority, setFilterPriority] = useState(''); // vacío = todas
+  const [filterStatus, setFilterStatus] = useState(''); // vacío = todos
+  const [showFilters, setShowFilters] = useState(false);
+  
+  // Cargar configuración global para los filtros
+  const [globalConfig, setGlobalConfig] = useState(null);
+  
   // Estados para crear/editar
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showAnalysisModal, setShowAnalysisModal] = useState(false);
+  const [showClassifier, setShowClassifier] = useState(false);
+  const [promptToClassify, setPromptToClassify] = useState(null);
   const [editingProject, setEditingProject] = useState(null);
   const [newProject, setNewProject] = useState({
     name: '',
@@ -95,6 +113,12 @@ const ProjectChronologyModule = () => {
     loadPrompts();
     loadLearnings();
     calculateMetrics();
+    
+    // Cargar configuración global
+    const config = localStorage.getItem('jarvi-global-config');
+    if (config) {
+      setGlobalConfig(JSON.parse(config));
+    }
   }, []);
 
   const loadProjects = () => {
@@ -268,7 +292,19 @@ const ProjectChronologyModule = () => {
     const matchesTags = selectedTags.length === 0 || 
       selectedTags.some(tag => prompt.tags?.includes(tag));
     
-    return matchesProject && matchesSearch && matchesTags;
+    // Filtros de clasificación
+    const matchesRating = filterRating === 0 || 
+      (prompt.classification?.rating >= filterRating);
+    const matchesCategory = !filterCategory || 
+      prompt.classification?.category === filterCategory;
+    const matchesPriority = !filterPriority || 
+      prompt.classification?.priority === filterPriority;
+    const matchesStatus = !filterStatus || 
+      prompt.classification?.status === filterStatus ||
+      prompt.status === filterStatus;
+    
+    return matchesProject && matchesSearch && matchesTags && 
+           matchesRating && matchesCategory && matchesPriority && matchesStatus;
   });
 
   const getAllTags = () => {
@@ -280,6 +316,44 @@ const ProjectChronologyModule = () => {
       p.tags?.forEach(tag => tags.add(tag));
     });
     return Array.from(tags);
+  };
+
+  const handleClassifyPrompt = (prompt) => {
+    setPromptToClassify(prompt);
+    setShowClassifier(true);
+  };
+
+  const handleClassificationComplete = (classifiedPrompt) => {
+    // Actualizar el prompt con la clasificación
+    const updatedPrompts = prompts.map(p => 
+      p.id === classifiedPrompt.id ? classifiedPrompt : p
+    );
+    setPrompts(updatedPrompts);
+    localStorage.setItem('jarvi_chronology_prompts', JSON.stringify(updatedPrompts));
+    
+    // Actualizar proyectos si hay nuevos
+    if (classifiedPrompt.classification?.projects) {
+      classifiedPrompt.classification.projects.forEach(projectName => {
+        if (!projects.find(p => p.name === projectName)) {
+          const newProj = {
+            id: Date.now().toString(),
+            name: projectName,
+            description: 'Proyecto detectado automáticamente',
+            tags: [],
+            color: projectColors[projects.length % projectColors.length].value,
+            icon: projectIcons[projects.length % projectIcons.length],
+            createdAt: new Date().toISOString(),
+            promptCount: 1
+          };
+          const updatedProjects = [...projects, newProj];
+          setProjects(updatedProjects);
+          localStorage.setItem('jarvi_projects', JSON.stringify(updatedProjects));
+        }
+      });
+    }
+    
+    setShowClassifier(false);
+    setPromptToClassify(null);
   };
 
   const exportData = () => {
@@ -354,27 +428,155 @@ const ProjectChronologyModule = () => {
         </div>
       </div>
 
-      {/* Barra de búsqueda y filtros */}
-      <div className="flex gap-4 mb-6">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar en prompts..."
-            className="w-full pl-10 pr-4 py-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-indigo-500 focus:outline-none"
-          />
-        </div>
-        
+      {/* Botón de filtros */}
+      <div className="mb-6">
         <button
-          onClick={() => setShowProjectModal(true)}
-          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors flex items-center gap-2"
+          onClick={() => setShowFilters(!showFilters)}
+          className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-all flex items-center gap-2"
         >
-          <Plus className="w-4 h-4" />
-          Nuevo Proyecto
+          <Filter className="w-4 h-4" />
+          Filtros
+          {(filterRating > 0 || filterCategory || filterPriority || filterStatus) && (
+            <span className="ml-2 px-2 py-0.5 bg-indigo-500 text-white text-xs rounded-full">
+              {[filterRating > 0, filterCategory, filterPriority, filterStatus].filter(Boolean).length}
+            </span>
+          )}
+          {showFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
       </div>
+      
+      {/* Panel de filtros */}
+      <AnimatePresence>
+        {showFilters && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="mb-6 overflow-hidden"
+          >
+            <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                
+                {/* Filtro por Rating */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <Star className="w-4 h-4 inline mr-1" />
+                    Filtrar por Rating
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setFilterRating(0)}
+                      className={`px-2 py-1 rounded text-xs transition-all ${
+                        filterRating === 0
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      }`}
+                    >
+                      Todos
+                    </button>
+                    {[1, 2, 3, 4, 5].map((rating) => (
+                      <button
+                        key={rating}
+                        onClick={() => setFilterRating(rating)}
+                        className={`p-1 rounded transition-all ${
+                          filterRating === rating
+                            ? 'bg-yellow-500/20 border border-yellow-500'
+                            : 'hover:bg-gray-700'
+                        }`}
+                        title={`${rating} estrellas o más`}
+                      >
+                        <Star className={`w-4 h-4 ${
+                          filterRating >= rating
+                            ? 'text-yellow-400 fill-yellow-400'
+                            : 'text-gray-500'
+                        }`} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Filtro por Categoría */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <Folder className="w-4 h-4 inline mr-1" />
+                    Categoría
+                  </label>
+                  <select
+                    value={filterCategory}
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                    className="w-full px-3 py-1 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-indigo-500 focus:outline-none text-sm"
+                  >
+                    <option value="">Todas las categorías</option>
+                    {globalConfig?.globalCategories?.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                {/* Filtro por Prioridad */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <Flag className="w-4 h-4 inline mr-1" />
+                    Prioridad
+                  </label>
+                  <select
+                    value={filterPriority}
+                    onChange={(e) => setFilterPriority(e.target.value)}
+                    className="w-full px-3 py-1 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-indigo-500 focus:outline-none text-sm"
+                  >
+                    <option value="">Todas las prioridades</option>
+                    {globalConfig?.globalPriorities?.map((priority) => (
+                      <option key={priority.id} value={priority.id}>
+                        {priority.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                {/* Filtro por Estado */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <Activity className="w-4 h-4 inline mr-1" />
+                    Estado
+                  </label>
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="w-full px-3 py-1 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-indigo-500 focus:outline-none text-sm"
+                  >
+                    <option value="">Todos los estados</option>
+                    {globalConfig?.globalStates?.map((state) => (
+                      <option key={state.id} value={state.id}>
+                        {state.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              
+              {/* Botón para limpiar filtros */}
+              {(filterRating > 0 || filterCategory || filterPriority || filterStatus) && (
+                <div className="mt-4 flex justify-end">
+                  <button
+                    onClick={() => {
+                      setFilterRating(0);
+                      setFilterCategory('');
+                      setFilterPriority('');
+                      setFilterStatus('');
+                    }}
+                    className="px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors flex items-center gap-2 text-sm"
+                  >
+                    <X className="w-3 h-3" />
+                    Limpiar filtros
+                  </button>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Lista de proyectos */}
       <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
@@ -435,6 +637,39 @@ const ProjectChronologyModule = () => {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
+                            {/* Sistema de valoración con estrellas */}
+                            {prompt.classification?.rating ? (
+                              <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-0.5">
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                    <Star
+                                      key={star}
+                                      className={`w-4 h-4 ${
+                                        star <= prompt.classification.rating
+                                          ? 'text-yellow-400 fill-yellow-400'
+                                          : 'text-gray-600'
+                                      }`}
+                                    />
+                                  ))}
+                                </div>
+                                <button
+                                  onClick={() => handleClassifyPrompt(prompt)}
+                                  className="text-xs text-gray-500 hover:text-purple-400 transition-colors"
+                                  title="Editar clasificación"
+                                >
+                                  <Edit3 className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => handleClassifyPrompt(prompt)}
+                                className="flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all text-xs font-medium animate-pulse"
+                              >
+                                <Sparkles className="w-4 h-4" />
+                                Clasificar Prompt
+                              </button>
+                            )}
+                            
                             {project && (
                               <div 
                                 className="px-2 py-1 rounded-lg text-xs text-white flex items-center gap-1"
@@ -805,6 +1040,20 @@ const ProjectChronologyModule = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Modal del Clasificador de Prompts */}
+      {showClassifier && promptToClassify && (
+        <PromptClassifier
+          prompt={promptToClassify}
+          onClassificationComplete={handleClassificationComplete}
+          onClose={() => {
+            setShowClassifier(false);
+            setPromptToClassify(null);
+          }}
+          existingProjects={projects.map(p => p.name)}
+          existingTags={getAllTags()}
+        />
+      )}
     </div>
   );
 };
