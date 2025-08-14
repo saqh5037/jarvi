@@ -83,6 +83,7 @@ app.get('/api/voice-notes', (req, res) => {
         const data = fs.readFileSync(path.join(voiceNotesDir, file), 'utf8');
         return JSON.parse(data);
       })
+      .filter(note => !note.archived) // Excluir notas archivadas
       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     
     res.json({ success: true, notes: files });
@@ -377,6 +378,167 @@ app.patch('/api/voice-notes/:id/processed', (req, res) => {
     res.json({ success: true, message: 'Estado de procesado actualizado' });
   } catch (error) {
     console.error('Error actualizando estado de procesado:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ========== ENDPOINTS DE ARCHIVO DE NOTAS DE VOZ ==========
+
+// Archivar nota de voz
+app.post('/api/voice-notes/:id/archive', (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Buscar el archivo JSON que corresponde a este ID
+    const files = fs.readdirSync(voiceNotesDir)
+      .filter(file => file.endsWith('.json'));
+    
+    let noteFile = null;
+    let noteData = null;
+    
+    for (const file of files) {
+      const filePath = path.join(voiceNotesDir, file);
+      const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      if (data.id && data.id.toString() === id.toString()) {
+        noteFile = filePath;
+        noteData = data;
+        break;
+      }
+    }
+    
+    if (!noteFile || !noteData) {
+      return res.status(404).json({ success: false, error: 'Nota no encontrada' });
+    }
+    
+    // Marcar como archivada
+    noteData.archived = true;
+    noteData.archivedAt = new Date().toISOString();
+    
+    // Guardar cambios
+    fs.writeFileSync(noteFile, JSON.stringify(noteData, null, 2));
+    
+    // Emitir evento de actualización
+    io.emit('voice-note-archived', {
+      id,
+      archived: true,
+      archivedAt: noteData.archivedAt
+    });
+    
+    console.log(`📥 Nota ${id} archivada`);
+    
+    res.json({ success: true, note: noteData });
+  } catch (error) {
+    console.error('Error archivando nota:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Obtener notas archivadas
+app.get('/api/voice-notes/archived', (req, res) => {
+  try {
+    const files = fs.readdirSync(voiceNotesDir)
+      .filter(file => file.endsWith('.json'))
+      .map(file => {
+        const noteData = JSON.parse(fs.readFileSync(path.join(voiceNotesDir, file), 'utf8'));
+        return noteData;
+      })
+      .filter(note => note.archived === true)
+      .sort((a, b) => new Date(b.archivedAt || b.timestamp) - new Date(a.archivedAt || a.timestamp));
+    
+    res.json({ 
+      success: true, 
+      notes: files,
+      total: files.length 
+    });
+  } catch (error) {
+    console.error('Error obteniendo notas archivadas:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Obtener estadísticas de notas archivadas
+app.get('/api/voice-notes/archived/stats', (req, res) => {
+  try {
+    const files = fs.readdirSync(voiceNotesDir)
+      .filter(file => file.endsWith('.json'))
+      .map(file => {
+        const noteData = JSON.parse(fs.readFileSync(path.join(voiceNotesDir, file), 'utf8'));
+        return noteData;
+      })
+      .filter(note => note.archived === true);
+    
+    const stats = {
+      total: files.length,
+      totalDuration: files.reduce((acc, note) => acc + (note.duration || 0), 0),
+      byCategory: {},
+      averageDuration: 0
+    };
+    
+    // Agrupar por categoría si existe
+    files.forEach(note => {
+      if (note.category) {
+        stats.byCategory[note.category] = (stats.byCategory[note.category] || 0) + 1;
+      }
+    });
+    
+    // Calcular duración promedio
+    if (files.length > 0) {
+      stats.averageDuration = stats.totalDuration / files.length;
+    }
+    
+    res.json({ success: true, stats });
+  } catch (error) {
+    console.error('Error obteniendo estadísticas:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Restaurar nota archivada
+app.post('/api/voice-notes/:id/restore', (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Buscar el archivo JSON que corresponde a este ID
+    const files = fs.readdirSync(voiceNotesDir)
+      .filter(file => file.endsWith('.json'));
+    
+    let noteFile = null;
+    let noteData = null;
+    
+    for (const file of files) {
+      const filePath = path.join(voiceNotesDir, file);
+      const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      if (data.id && data.id.toString() === id.toString()) {
+        noteFile = filePath;
+        noteData = data;
+        break;
+      }
+    }
+    
+    if (!noteFile || !noteData) {
+      return res.status(404).json({ success: false, error: 'Nota no encontrada' });
+    }
+    
+    // Quitar marca de archivada
+    noteData.archived = false;
+    delete noteData.archivedAt;
+    noteData.restoredAt = new Date().toISOString();
+    
+    // Guardar cambios
+    fs.writeFileSync(noteFile, JSON.stringify(noteData, null, 2));
+    
+    // Emitir evento de actualización
+    io.emit('voice-note-restored', {
+      id,
+      archived: false,
+      restoredAt: noteData.restoredAt
+    });
+    
+    console.log(`📤 Nota ${id} restaurada`);
+    
+    res.json({ success: true, note: noteData });
+  } catch (error) {
+    console.error('Error restaurando nota:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

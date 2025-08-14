@@ -15,16 +15,23 @@ const __dirname = dirname(__filename);
 const execAsync = promisify(exec);
 
 // Cargar variables de entorno ANTES de cualquier verificación
-dotenv.config();
+const envPath = path.join(__dirname, '.env');
+dotenv.config({ path: envPath });
 
 // Verificar las API keys disponibles
 console.log('🔍 Verificando servicios de transcripción disponibles...');
+console.log(`📁 Cargando .env desde: ${envPath}`);
+
 if (process.env.GEMINI_API_KEY) {
-  console.log('✅ Gemini API Key detectada');
-} else if (process.env.OPENAI_API_KEY) {
-  console.log('✅ OpenAI API Key detectada');
+  console.log('✅ Gemini API Key detectada - será la primera opción');
+} 
+if (process.env.OPENAI_API_KEY) {
+  console.log('✅ OpenAI API Key detectada - será la segunda opción');
+} 
+if (!process.env.GEMINI_API_KEY && !process.env.OPENAI_API_KEY) {
+  console.log('⚠️ Sin API keys - Whisper local será la única opción');
 } else {
-  console.log('⚠️ Sin API keys - usando servicio local');
+  console.log('🎙️ Whisper local configurado como backup');
 }
 
 /**

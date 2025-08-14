@@ -16,7 +16,11 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
-  Clock
+  Clock,
+  Monitor,
+  Archive,
+  Timer,
+  Layout
 } from 'lucide-react';
 
 // Importar todos los módulos
@@ -28,6 +32,11 @@ import EnhancedMeetingsModule from './EnhancedMeetingsModule';
 import InterestsModule from './InterestsModule';
 import SettingsModule from './SettingsModule';
 import ProjectChronologyModule from './ProjectChronologyModule';
+import PresentationsModule from './PresentationsModule';
+import GeneralArchiveModule from './GeneralArchiveModule';
+import PomodoroModuleV2 from './PomodoroModuleV2';
+import KanbanModule from './KanbanModule';
+import { PomodoroProvider } from './PomodoroWidget';
 
 // Componente Badge tipo iOS con animaciones mejoradas
 const NotificationBadge = ({ count, color = 'bg-red-500', maxCount = 99 }) => {
@@ -89,7 +98,10 @@ const ModernMainDashboard = () => {
     interests: { unread: 0 },
     dashboard: { notifications: 0 },
     chronology: { new: 0 },
-    settings: { updates: 0 }
+    settings: { updates: 0 },
+    archived: { total: 0 },
+    pomodoro: { active: false },
+    kanban: { inProgress: 0 }
   });
 
   const modules = [
@@ -169,6 +181,48 @@ const ModernMainDashboard = () => {
       stats: moduleStats.chronology.new > 0
         ? `${moduleStats.chronology.new} nuevos`
         : 'Historial'
+    },
+    { 
+      id: 'presentations', 
+      name: 'Presentaciones', 
+      icon: Monitor, 
+      component: PresentationsModule,
+      description: 'Crea presentaciones impactantes con IA',
+      gradient: 'from-purple-500 to-pink-500',
+      stats: '0 presentaciones'
+    },
+    { 
+      id: 'pomodoro', 
+      name: 'Pomodoro', 
+      icon: Timer, 
+      component: PomodoroModuleV2,
+      description: 'Gestión del tiempo con técnica Pomodoro',
+      gradient: 'from-red-500 to-orange-600',
+      stats: moduleStats.pomodoro?.active 
+        ? 'Sesión activa'
+        : 'Iniciar sesión'
+    },
+    { 
+      id: 'kanban', 
+      name: 'Kanban', 
+      icon: Layout, 
+      component: KanbanModule,
+      description: 'Tablero visual para seguimiento de tareas',
+      gradient: 'from-indigo-500 to-purple-600',
+      stats: moduleStats.kanban?.inProgress > 0 
+        ? `${moduleStats.kanban.inProgress} en progreso`
+        : 'Ver tablero'
+    },
+    { 
+      id: 'archived', 
+      name: 'Archivo', 
+      icon: Archive, 
+      component: GeneralArchiveModule,
+      description: 'Centro de archivos: tareas y notas de voz',
+      gradient: 'from-gray-500 to-gray-700',
+      stats: moduleStats.archived?.total > 0 
+        ? `${moduleStats.archived.total} archivadas`
+        : 'Historial de tareas'
     },
     { 
       id: 'settings', 
@@ -271,6 +325,18 @@ const ModernMainDashboard = () => {
           }
         }
 
+        // Cargar estadísticas de tareas archivadas
+        const archivedStatsResponse = await fetch('http://localhost:3003/api/tasks/archived/stats');
+        if (archivedStatsResponse.ok) {
+          const archivedData = await archivedStatsResponse.json();
+          if (archivedData.stats) {
+            setModuleStats(prev => ({
+              ...prev,
+              archived: { total: archivedData.stats.total || 0 }
+            }));
+          }
+        }
+
         // Simular notificaciones del dashboard
         setModuleStats(prev => ({
           ...prev,
@@ -335,8 +401,9 @@ const ModernMainDashboard = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex relative" style={{backgroundColor: '#f9fafb'}}>
-      {/* Sidebar - Fixed/Sticky */}
+    <PomodoroProvider>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex relative" style={{backgroundColor: '#f9fafb'}}>
+        {/* Sidebar - Fixed/Sticky */}
       <motion.div 
         className={`${
           sidebarCollapsed ? 'w-20' : 'w-72'
@@ -645,6 +712,7 @@ const ModernMainDashboard = () => {
         )}
       </AnimatePresence>
     </div>
+    </PomodoroProvider>
   );
 };
 

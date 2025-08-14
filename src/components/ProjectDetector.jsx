@@ -13,7 +13,16 @@ import {
   Lightbulb,
   X,
   Zap,
-  TrendingUp
+  TrendingUp,
+  Cpu,
+  Rocket,
+  Building2,
+  Briefcase,
+  Code2,
+  Users,
+  Calendar,
+  Target,
+  Layers
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -57,10 +66,64 @@ const ProjectDetector = ({
     }
   }, [content]);
 
+  // Mapeo de iconos de string a componentes
+  const iconMap = {
+    'Cpu': Cpu,
+    'Rocket': Rocket,
+    'Building2': Building2,
+    'Briefcase': Briefcase,
+    'Code2': Code2,
+    'Users': Users,
+    'Calendar': Calendar,
+    'Target': Target,
+    'Brain': Brain,
+    'Zap': Zap,
+    'Layers': Layers,
+    'FolderOpen': FolderOpen
+  };
+
+  // Función helper para obtener el componente de icono
+  const getIconComponent = (iconName) => {
+    return iconMap[iconName] || FolderOpen;
+  };
+
   const loadProjects = () => {
-    const saved = localStorage.getItem('jarvi_projects');
-    if (saved) {
-      setProjects(JSON.parse(saved));
+    // Cargar proyectos desde la configuración global
+    const globalConfig = localStorage.getItem('jarvi-global-config');
+    if (globalConfig) {
+      const config = JSON.parse(globalConfig);
+      // Los proyectos están en globalProjects, no en projects
+      if (config.globalProjects && config.globalProjects.length > 0) {
+        // Mapear proyectos de configuración global al formato esperado
+        const mappedProjects = config.globalProjects.map(p => ({
+          id: p.id,
+          name: p.name,
+          description: p.description || '',
+          icon: p.icon || 'FolderOpen',
+          IconComponent: getIconComponent(p.icon),
+          color: p.color || '#6366f1',
+          tags: p.tags || [],
+          status: p.status || 'active',
+          team: p.team || [],
+          startDate: p.startDate,
+          endDate: p.endDate,
+          stats: p.stats || { prompts: 0, iterations: 0, completedTasks: 0 }
+        }));
+        setProjects(mappedProjects);
+        console.log('✅ Proyectos cargados desde configuración global:', mappedProjects.length);
+      } else {
+        console.log('⚠️ No hay proyectos en configuración global');
+      }
+    } else {
+      // Fallback a proyectos antiguos si existen
+      const saved = localStorage.getItem('jarvi_projects');
+      if (saved) {
+        const oldProjects = JSON.parse(saved);
+        setProjects(oldProjects);
+        console.log('📦 Proyectos cargados desde almacenamiento antiguo:', oldProjects.length);
+      } else {
+        console.log('❌ No hay proyectos disponibles');
+      }
     }
   };
 
@@ -243,33 +306,8 @@ const ProjectDetector = ({
     return Array.from(tags);
   };
 
-  const createNewProject = () => {
-    if (!newProjectName.trim()) return;
-    
-    const project = {
-      id: Date.now().toString(),
-      name: newProjectName,
-      description: newProjectDescription,
-      tags: suggestedTags,
-      color: '#6366f1',
-      icon: '📁',
-      createdAt: new Date().toISOString(),
-      promptCount: 0
-    };
-    
-    const updatedProjects = [...projects, project];
-    setProjects(updatedProjects);
-    localStorage.setItem('jarvi_projects', JSON.stringify(updatedProjects));
-    
-    onProjectSelect(project);
-    if (onProjectCreate) {
-      onProjectCreate(project);
-    }
-    
-    setShowCreateNew(false);
-    setNewProjectName('');
-    setNewProjectDescription('');
-  };
+  // Función removida - Los proyectos se crean desde Configuración Global
+  // Para crear proyectos, usar el módulo de Configuración Global
 
   return (
     <div className="mb-4">
@@ -444,7 +482,13 @@ const ProjectDetector = ({
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">{project.icon}</span>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-400/30">
+                      {project.IconComponent ? (
+                        <project.IconComponent className="w-5 h-5 text-indigo-300" />
+                      ) : (
+                        <FolderOpen className="w-5 h-5 text-indigo-300" />
+                      )}
+                    </div>
                     <div>
                       <p className="text-sm font-medium text-white">{project.name}</p>
                       {project.description && (
@@ -462,111 +506,56 @@ const ProjectDetector = ({
             ))}
           </div>
 
-          <button
-            onClick={() => {
-              setShowCreateNew(true);
-              setShowSelector(false);
-            }}
-            className="w-full p-3 border-2 border-dashed border-gray-600 hover:border-indigo-500 rounded-lg transition-colors"
-          >
-            <div className="flex items-center justify-center gap-2 text-gray-400 hover:text-indigo-400">
-              <Plus className="w-4 h-4" />
-              <span className="text-sm">Crear nuevo proyecto</span>
+          {/* Mensaje informativo si no hay proyectos */}
+          {projects.length === 0 && (
+            <div className="text-center p-3 bg-amber-500/10 rounded-lg border border-amber-500/30">
+              <AlertCircle className="w-5 h-5 text-amber-400 mx-auto mb-2" />
+              <p className="text-xs text-amber-200">
+                No hay proyectos configurados.
+              </p>
+              <p className="text-xs text-amber-100/70 mt-1">
+                Ve a Configuración Global para crear proyectos.
+              </p>
             </div>
-          </button>
+          )}
         </motion.div>
       )}
 
-      {/* Formulario de nuevo proyecto */}
-      {showCreateNew && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          exit={{ opacity: 0, height: 0 }}
-          className="p-4 bg-gray-800/50 rounded-lg border border-indigo-500/50 mb-3"
-        >
-          <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
-            <Plus className="w-4 h-4 text-indigo-400" />
-            Crear nuevo proyecto
-          </h4>
+      {/* Formulario removido - Los proyectos se crean desde Configuración Global */}
 
-          <div className="space-y-3">
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Nombre del proyecto</label>
-              <input
-                type="text"
-                value={newProjectName}
-                onChange={(e) => setNewProjectName(e.target.value)}
-                placeholder="Mi nuevo proyecto"
-                className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                autoFocus
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Descripción (opcional)</label>
-              <textarea
-                value={newProjectDescription}
-                onChange={(e) => setNewProjectDescription(e.target.value)}
-                placeholder="Descripción del proyecto..."
-                className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none"
-                rows={2}
-              />
-            </div>
-
-            {suggestedTags.length > 0 && (
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Etiquetas sugeridas</label>
-                <div className="flex flex-wrap gap-1">
-                  {suggestedTags.map(tag => (
-                    <span key={tag} className="text-xs px-2 py-1 bg-indigo-600/30 text-indigo-300 rounded">
-                      #{tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  setShowCreateNew(false);
-                  setShowSelector(true);
-                }}
-                className="flex-1 px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={createNewProject}
-                disabled={!newProjectName.trim()}
-                className="flex-1 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Crear proyecto
-              </button>
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Proyecto actual seleccionado */}
-      {currentProject && !showSelector && !detectedProject && (
+      {/* Proyecto actual seleccionado o selector rápido */}
+      {!showSelector && (
         <div className="flex items-center gap-2 p-2 bg-gray-800/30 rounded-lg">
           <FolderOpen className="w-4 h-4 text-gray-400" />
           <span className="text-xs text-gray-400">Proyecto:</span>
-          <div 
-            className="px-2 py-1 rounded text-xs text-white flex items-center gap-1"
-            style={{ backgroundColor: currentProject.color + '40' }}
-          >
-            <span>{currentProject.icon}</span>
-            <span>{currentProject.name}</span>
-          </div>
-          <button
-            onClick={() => setShowSelector(true)}
-            className="ml-auto text-xs text-gray-500 hover:text-indigo-400 transition-colors"
-          >
-            Cambiar
-          </button>
+          {currentProject ? (
+            <>
+              <div className="px-3 py-1.5 rounded-lg text-xs text-white flex items-center gap-2 bg-gradient-to-r from-indigo-500/30 to-purple-500/30 border border-indigo-400/30">
+                {currentProject.IconComponent ? (
+                  <currentProject.IconComponent className="w-4 h-4 text-indigo-300" />
+                ) : (
+                  <FolderOpen className="w-4 h-4 text-indigo-300" />
+                )}
+                <span className="font-medium">{currentProject.name}</span>
+              </div>
+              <button
+                onClick={() => setShowSelector(true)}
+                className="ml-auto text-xs text-gray-500 hover:text-indigo-400 transition-colors"
+              >
+                Cambiar
+              </button>
+            </>
+          ) : (
+            <>
+              <span className="text-xs text-amber-400">Sin proyecto asignado</span>
+              <button
+                onClick={() => setShowSelector(true)}
+                className="ml-auto text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+              >
+                Seleccionar
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>

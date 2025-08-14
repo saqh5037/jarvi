@@ -10,6 +10,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import dotenv from 'dotenv';
 import { corsOptions } from './cors-config.mjs';
+import archiveService from './tasks/services/archive-service.js';
 
 dotenv.config();
 
@@ -282,6 +283,49 @@ app.get('/api/tasks', async (req, res) => {
   }
 });
 
+// ==================== ENDPOINTS DE ARCHIVO ====================
+// IMPORTANTE: Estas rutas deben estar ANTES de las rutas con :id para evitar conflictos
+
+// Buscar tareas archivadas
+app.get('/api/tasks/archived', async (req, res) => {
+  try {
+    const options = {
+      search: req.query.search,
+      project: req.query.project,
+      category: req.query.category,
+      priority: req.query.priority,
+      startDate: req.query.startDate,
+      endDate: req.query.endDate,
+      orderBy: req.query.orderBy || 'archived_at',
+      order: req.query.order || 'DESC',
+      limit: parseInt(req.query.limit) || 50,
+      offset: parseInt(req.query.offset) || 0
+    };
+    
+    const tasks = await archiveService.searchArchived(options);
+    
+    res.json({ 
+      success: true, 
+      tasks,
+      total: tasks.length 
+    });
+  } catch (error) {
+    console.error('Error buscando tareas archivadas:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Obtener estadísticas del archivo
+app.get('/api/tasks/archived/stats', async (req, res) => {
+  try {
+    const stats = await archiveService.getStatistics();
+    res.json({ success: true, stats });
+  } catch (error) {
+    console.error('Error obteniendo estadísticas:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Obtener una tarea
 app.get('/api/tasks/:id', async (req, res) => {
   try {
@@ -321,12 +365,25 @@ app.post('/api/tasks/natural', async (req, res) => {
   try {
     const { text, source = 'api', metadata } = req.body;
     
+    console.log('📝 Procesando texto natural para tarea:');
+    console.log('  - Texto recibido:', typeof text === 'string' ? text : JSON.stringify(text));
+    console.log('  - Fuente:', source);
+    console.log('  - Metadata:', metadata);
+    
     if (!text) {
       return res.status(400).json({ success: false, error: 'Texto requerido' });
     }
     
+    // Verificar si text es un string o un objeto
+    let textToProcess = text;
+    if (typeof text === 'object') {
+      console.log('⚠️ Se recibió un objeto en lugar de texto, intentando extraer contenido...');
+      // Intentar extraer el texto del objeto
+      textToProcess = text.text || text.content || text.transcription || JSON.stringify(text);
+    }
+    
     // Parsear el texto natural
-    const taskData = await parseNaturalLanguageToTask(text);
+    const taskData = await parseNaturalLanguageToTask(textToProcess);
     taskData.createdBy = source;
     
     // Si viene con metadata de audio (desde Telegram)
@@ -512,6 +569,85 @@ app.get('/api/categories', async (req, res) => {
     const categories = JSON.parse(await fs.readFile(categoriesFile, 'utf8'));
     res.json({ success: true, categories });
   } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Archivar una tarea completada
+app.post('/api/tasks/:id/archive', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Leer tareas actuales
+    const tasks = JSON.parse(await fs.readFile(tasksFile, 'utf8'));
+    const taskIndex = tasks.findIndex(t => t.id === id);
+    
+    if (taskIndex === -1) {
+      return res.status(404).json({ success: false, error: 'Tarea no encontrada' });
+    }
+    
+    const task = tasks[taskIndex];
+    
+    // Verificar que la tarea esté completada
+    if (task.status !== 'completed') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Solo se pueden archivar tareas completadas' 
+      });
+    }
+    
+    // Archivar en SQLite
+    const result = await archiveService.archiveTask(task);
+    
+    if (result.success) {
+      // Eliminar de tareas activas
+      tasks.splice(taskIndex, 1);
+      await fs.writeFile(tasksFile, JSON.stringify(tasks, null, 2));
+      
+      // Emitir evento
+      io.emit('task-archived', { id, task: result.task });
+      
+      res.json({ 
+        success: true, 
+        message: 'Tarea archivada exitosamente',
+        task: result.task 
+      });
+    } else {
+      throw new Error('Error al archivar la tarea');
+    }
+  } catch (error) {
+    console.error('Error archivando tarea:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Desarchivar una tarea
+app.post('/api/tasks/:id/unarchive', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Desarchivar de SQLite
+    const result = await archiveService.unarchiveTask(id);
+    
+    if (result.success) {
+      // Añadir a tareas activas
+      const tasks = JSON.parse(await fs.readFile(tasksFile, 'utf8'));
+      tasks.push(result.task);
+      await fs.writeFile(tasksFile, JSON.stringify(tasks, null, 2));
+      
+      // Emitir evento
+      io.emit('task-unarchived', { id, task: result.task });
+      
+      res.json({ 
+        success: true, 
+        message: 'Tarea restaurada exitosamente',
+        task: result.task 
+      });
+    } else {
+      throw new Error('Error al desarchivar la tarea');
+    }
+  } catch (error) {
+    console.error('Error desarchivando tarea:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

@@ -76,23 +76,25 @@ const TodoModule = () => {
   });
 
   // Usar configuración global o valores por defecto
-  const priorities = globalConfig?.globalPriorities?.reduce((acc, pri) => {
-    acc[pri.id] = {
-      color: pri.color,
-      label: pri.name,
-      icon: pri.icon === 'AlertCircle' ? AlertCircle :
-            pri.icon === 'Flag' ? Flag :
-            pri.icon === 'Circle' ? Circle :
-            pri.icon === 'Square' ? Square : Circle,
-      level: pri.level
-    };
-    return acc;
-  }, {}) || {
-    urgent: { color: 'red', label: 'Urgente', icon: AlertCircle, level: 1 },
-    high: { color: 'orange', label: 'Alta', icon: Flag, level: 2 },
-    medium: { color: 'yellow', label: 'Media', icon: Circle, level: 3 },
-    low: { color: 'green', label: 'Baja', icon: Circle, level: 4 }
-  };
+  const priorities = globalConfig?.globalPriorities?.length > 0 
+    ? globalConfig.globalPriorities.reduce((acc, pri) => {
+        acc[pri.id] = {
+          color: pri.color,
+          label: pri.name,
+          icon: pri.icon === 'AlertCircle' ? AlertCircle :
+                pri.icon === 'Flag' ? Flag :
+                pri.icon === 'Circle' ? Circle :
+                pri.icon === 'Square' ? Square : Circle,
+          level: pri.level
+        };
+        return acc;
+      }, {})
+    : {
+        urgent: { color: 'red', label: 'Urgente', icon: AlertCircle, level: 1 },
+        high: { color: 'orange', label: 'Alta', icon: Flag, level: 2 },
+        medium: { color: 'yellow', label: 'Media', icon: Circle, level: 3 },
+        low: { color: 'green', label: 'Baja', icon: Circle, level: 4 }
+      };
 
   const categories = globalConfig?.globalCategories?.reduce((acc, cat) => {
     acc[cat.id] = {
@@ -306,17 +308,19 @@ const TodoModule = () => {
     const todo = todos.find(t => t.id === id);
     if (!todo) return;
 
-    const updatedTodo = { ...todo, completed: !todo.completed };
+    const updatedTodo = { 
+      ...todo, 
+      completed: !todo.completed,
+      status: !todo.completed ? 'completed' : 'pending',
+      completedAt: !todo.completed ? new Date().toISOString() : null
+    };
     
     try {
       // Actualizar en el servidor
       const response = await fetch(`http://localhost:3003/api/tasks/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...updatedTodo,
-          status: updatedTodo.completed ? 'completed' : 'pending'
-        })
+        body: JSON.stringify(updatedTodo)
       });
 
       if (response.ok) {
@@ -369,6 +373,49 @@ const TodoModule = () => {
     }
   };
   
+  const archiveTodo = async (id) => {
+    try {
+      const todo = todos.find(t => t.id === id);
+      if (!todo) return;
+
+      // Solo archivar tareas completadas (verificar ambos campos)
+      if (!todo.completed && todo.status !== 'completed') {
+        alert('Solo se pueden archivar tareas completadas');
+        return;
+      }
+
+      // Confirmar archivo
+      if (!window.confirm('¿Deseas archivar esta tarea? Podrás recuperarla más tarde desde el archivo.')) {
+        return;
+      }
+
+      // Archivar en el servidor
+      const response = await fetch(`http://localhost:3003/api/tasks/${id}/archive`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (response.ok) {
+        // Eliminar de la lista local
+        setTodos(todos.filter(t => t.id !== id));
+        
+        // Emitir por WebSocket si está conectado
+        if (socket) {
+          socket.emit('task-archived', { id });
+        }
+        
+        console.log('✅ Tarea archivada exitosamente');
+      } else {
+        const error = await response.json();
+        console.error('Error al archivar:', error);
+        alert(error.error || 'No se pudo archivar la tarea');
+      }
+    } catch (error) {
+      console.error('Error archivando tarea:', error);
+      alert('Error al archivar la tarea. Por favor, intenta de nuevo.');
+    }
+  };
+
   const deleteTodo = async (id) => {
     try {
       // Confirmar eliminación
@@ -841,7 +888,7 @@ const TodoModule = () => {
                 className={`bg-white rounded-xl p-4 shadow-sm border-l-4 transition-all hover:shadow-md ${
                   todo.completed 
                     ? 'border-green-500 opacity-75' 
-                    : `border-${priorities[todo.priority].color}-500`
+                    : `border-${priorities[todo.priority]?.color || 'gray'}-500`
                 }`}
               >
                 <div className="flex items-start gap-3">
@@ -903,6 +950,17 @@ const TodoModule = () => {
                               <Edit3 className="w-4 h-4" />
                               <span>Editar IA</span>
                             </button>
+                            
+                            {/* Botón de Archivar - Solo para tareas completadas */}
+                            {(todo.completed || todo.status === 'completed') && (
+                              <button
+                                onClick={() => archiveTodo(todo.id)}
+                                className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                title="Archivar tarea completada"
+                              >
+                                <Archive className="w-4 h-4" />
+                              </button>
+                            )}
                             
                             <button
                               onClick={() => deleteTodo(todo.id)}

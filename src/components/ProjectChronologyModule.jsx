@@ -54,6 +54,7 @@ const ProjectChronologyModule = () => {
   const [selectedPrompt, setSelectedPrompt] = useState(null);
   const [activeView, setActiveView] = useState('timeline'); // timeline, analytics, learning
   const [searchQuery, setSearchQuery] = useState('');
+  const [textSearchQuery, setTextSearchQuery] = useState(''); // Nuevo estado para búsqueda por texto
   const [selectedTags, setSelectedTags] = useState([]);
   const [dateRange, setDateRange] = useState({ start: null, end: null });
   
@@ -289,6 +290,17 @@ const ProjectChronologyModule = () => {
     const matchesSearch = !searchQuery || 
       prompt.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
       prompt.result?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Filtro de búsqueda por texto
+    const matchesTextSearch = !textSearchQuery || 
+      prompt.content.toLowerCase().includes(textSearchQuery.toLowerCase()) ||
+      prompt.result?.toLowerCase().includes(textSearchQuery.toLowerCase()) ||
+      prompt.tags?.some(tag => tag.toLowerCase().includes(textSearchQuery.toLowerCase())) ||
+      prompt.classification?.projects?.some(project => 
+        project.toLowerCase().includes(textSearchQuery.toLowerCase())) ||
+      prompt.classification?.tags?.some(tag => 
+        tag.toLowerCase().includes(textSearchQuery.toLowerCase()));
+    
     const matchesTags = selectedTags.length === 0 || 
       selectedTags.some(tag => prompt.tags?.includes(tag));
     
@@ -303,7 +315,7 @@ const ProjectChronologyModule = () => {
       prompt.classification?.status === filterStatus ||
       prompt.status === filterStatus;
     
-    return matchesProject && matchesSearch && matchesTags && 
+    return matchesProject && matchesSearch && matchesTextSearch && matchesTags && 
            matchesRating && matchesCategory && matchesPriority && matchesStatus;
   });
 
@@ -428,14 +440,35 @@ const ProjectChronologyModule = () => {
         </div>
       </div>
 
-      {/* Botón de filtros */}
-      <div className="mb-6">
+      {/* Barra de búsqueda y filtros */}
+      <div className="mb-6 space-y-4">
+        {/* Campo de búsqueda por texto */}
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <input
+            type="text"
+            value={textSearchQuery}
+            onChange={(e) => setTextSearchQuery(e.target.value)}
+            placeholder="Buscar en prompts por palabras..."
+            className="w-full pl-12 pr-4 py-3 bg-gray-800 text-white border border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:outline-none placeholder-gray-500"
+          />
+          {textSearchQuery && (
+            <button
+              onClick={() => setTextSearchQuery('')}
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-700 rounded transition-colors"
+            >
+              <X className="w-4 h-4 text-gray-400" />
+            </button>
+          )}
+        </div>
+        
+        {/* Botón de filtros */}
         <button
           onClick={() => setShowFilters(!showFilters)}
           className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-all flex items-center gap-2"
         >
           <Filter className="w-4 h-4" />
-          Filtros
+          Filtros de clasificación
           {(filterRating > 0 || filterCategory || filterPriority || filterStatus) && (
             <span className="ml-2 px-2 py-0.5 bg-indigo-500 text-white text-xs rounded-full">
               {[filterRating > 0, filterCategory, filterPriority, filterStatus].filter(Boolean).length}
@@ -569,7 +602,7 @@ const ProjectChronologyModule = () => {
                     className="px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors flex items-center gap-2 text-sm"
                   >
                     <X className="w-3 h-3" />
-                    Limpiar filtros
+                    Limpiar filtros de clasificación
                   </button>
                 </div>
               )}
@@ -613,12 +646,39 @@ const ProjectChronologyModule = () => {
       {/* Vista de Línea de Tiempo */}
       {activeView === 'timeline' && (
         <div className="space-y-4">
+          {/* Resultados de búsqueda */}
+          {textSearchQuery && (
+            <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+              <p className="text-sm text-gray-300">
+                {filteredPrompts.length === 0 ? (
+                  <span className="text-gray-500">No se encontraron resultados para "{textSearchQuery}"</span>
+                ) : (
+                  <>
+                    <span className="font-bold text-white">{filteredPrompts.length}</span> resultado{filteredPrompts.length !== 1 && 's'}
+                    {' '}para "<span className="text-indigo-400">{textSearchQuery}</span>"
+                  </>
+                )}
+              </p>
+              {textSearchQuery && (
+                <button
+                  onClick={() => setTextSearchQuery('')}
+                  className="text-xs text-gray-500 hover:text-gray-300 transition-colors flex items-center gap-1"
+                >
+                  <X className="w-3 h-3" />
+                  Limpiar búsqueda
+                </button>
+              )}
+            </div>
+          )}
+          
           {filteredPrompts.length === 0 ? (
             <div className="text-center py-12">
               <FileText className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-400">No hay prompts en la cronología</p>
+              <p className="text-gray-400">
+                {textSearchQuery ? 'No se encontraron prompts que coincidan con tu búsqueda' : 'No hay prompts en la cronología'}
+              </p>
               <p className="text-gray-500 text-sm mt-2">
-                Los prompts editados y guardados aparecerán aquí
+                {textSearchQuery ? 'Intenta con otras palabras clave' : 'Los prompts editados y guardados aparecerán aquí'}
               </p>
             </div>
           ) : (

@@ -503,6 +503,108 @@ app.delete('/api/voice-notes/prompts/:id', async (req, res) => {
   }
 });
 
+// ==================== ARCHIVO DE NOTAS ====================
+
+// Archivar nota de voz
+app.post('/api/voice-notes/:id/archive', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const notes = JSON.parse(await fs.readFile(notesFile, 'utf8'));
+    const noteIndex = notes.findIndex(n => n.id === id);
+    
+    if (noteIndex === -1) {
+      return res.status(404).json({ success: false, error: 'Nota no encontrada' });
+    }
+    
+    notes[noteIndex] = {
+      ...notes[noteIndex],
+      archived: true,
+      archivedAt: new Date().toISOString()
+    };
+    
+    await fs.writeFile(notesFile, JSON.stringify(notes, null, 2));
+    
+    io.emit('voice-note-archived', notes[noteIndex]);
+    res.json({ success: true, note: notes[noteIndex] });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Obtener notas archivadas
+app.get('/api/voice-notes/archived', async (req, res) => {
+  try {
+    const notes = JSON.parse(await fs.readFile(notesFile, 'utf8'));
+    const archivedNotes = notes.filter(note => note.archived === true);
+    
+    res.json({ 
+      success: true, 
+      notes: archivedNotes,
+      total: archivedNotes.length 
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Obtener estadísticas de notas archivadas
+app.get('/api/voice-notes/archived/stats', async (req, res) => {
+  try {
+    const notes = JSON.parse(await fs.readFile(notesFile, 'utf8'));
+    const archivedNotes = notes.filter(note => note.archived === true);
+    
+    const stats = {
+      total: archivedNotes.length,
+      totalDuration: archivedNotes.reduce((acc, note) => acc + (note.duration || 0), 0),
+      byCategory: {},
+      averageDuration: 0
+    };
+    
+    // Agrupar por categoría
+    archivedNotes.forEach(note => {
+      if (note.category) {
+        stats.byCategory[note.category] = (stats.byCategory[note.category] || 0) + 1;
+      }
+    });
+    
+    // Calcular duración promedio
+    if (archivedNotes.length > 0) {
+      stats.averageDuration = stats.totalDuration / archivedNotes.length;
+    }
+    
+    res.json({ success: true, stats });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Restaurar nota archivada
+app.post('/api/voice-notes/:id/restore', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const notes = JSON.parse(await fs.readFile(notesFile, 'utf8'));
+    const noteIndex = notes.findIndex(n => n.id === id);
+    
+    if (noteIndex === -1) {
+      return res.status(404).json({ success: false, error: 'Nota no encontrada' });
+    }
+    
+    notes[noteIndex] = {
+      ...notes[noteIndex],
+      archived: false,
+      archivedAt: null,
+      restoredAt: new Date().toISOString()
+    };
+    
+    await fs.writeFile(notesFile, JSON.stringify(notes, null, 2));
+    
+    io.emit('voice-note-restored', notes[noteIndex]);
+    res.json({ success: true, note: notes[noteIndex] });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // ==================== WEBSOCKET ====================
 
 io.on('connection', (socket) => {

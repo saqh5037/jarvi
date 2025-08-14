@@ -38,6 +38,7 @@ import {
   Square,
   Copy,
   RefreshCw,
+  Archive,
   Sparkles as SparklesIcon
 } from 'lucide-react';
 import io from 'socket.io-client';
@@ -76,6 +77,10 @@ const EnhancedVoiceNotesModule = () => {
   const [generatedPrompts, setGeneratedPrompts] = useState({}); // Prompts generados por nota ID
   const [editingPromptFor, setEditingPromptFor] = useState(null); // ID de nota editando prompt
   const [highlightedNoteId, setHighlightedNoteId] = useState(null); // ID de nota a destacar
+  const [archivingNoteId, setArchivingNoteId] = useState(null); // ID de nota siendo archivada
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(null); // ID de nota para confirmar archivo
+  const [showNotification, setShowNotification] = useState(null); // Notificación temporal
+  const [archivedCount, setArchivedCount] = useState(0); // Contador de notas archivadas
   const [scrollToNoteId, setScrollToNoteId] = useState(null); // ID de nota para hacer scroll
   
   const audioRef = useRef(null);
@@ -104,20 +109,17 @@ const EnhancedVoiceNotesModule = () => {
     socketRef.current = io(SOCKET_URLS.ENHANCED_NOTES);
     
     socketRef.current.on('connect', () => {
-      console.log('✅ Conectado al servidor');
       setIsConnected(true);
       loadVoiceNotes();
       loadAiStats();
     });
     
     socketRef.current.on('disconnect', () => {
-      console.log('❌ Desconectado del servidor');
       setIsConnected(false);
     });
     
     // Escuchar nuevas notas de voz
     socketRef.current.on('new-voice-note', (voiceNote) => {
-      console.log('🎙️ Nueva nota de voz:', voiceNote);
       setVoiceNotes(prev => [voiceNote, ...prev]);
       
       // Auto-transcribir si no tiene transcripción
@@ -142,7 +144,6 @@ const EnhancedVoiceNotesModule = () => {
     
     // Escuchar transcripciones completadas
     socketRef.current.on('transcription-complete', ({ noteId, transcription, tokens, cost }) => {
-      console.log('✅ Transcripción completada:', noteId);
       
       setVoiceNotes(prev => prev.map(note => 
         note.id === noteId ? { ...note, transcription, tokens, cost } : note
@@ -178,12 +179,9 @@ const EnhancedVoiceNotesModule = () => {
   
   const loadVoiceNotes = async () => {
     try {
-      console.log('🔄 Cargando notas de voz...');
       const response = await axios.get(API_ENDPOINTS.VOICE_NOTES);
-      console.log('📝 Respuesta del servidor:', response.data);
       if (response.data.success) {
         const notes = response.data.notes || [];
-        console.log(`✅ ${notes.length} notas cargadas`);
         setVoiceNotes(notes);
       }
     } catch (error) {
@@ -222,10 +220,8 @@ const EnhancedVoiceNotesModule = () => {
   };
   
   const transcribeVoiceNote = async (note) => {
-    console.log('🎤 Iniciando transcripción para:', note);
     
     if (transcribingNotes.has(note.id)) {
-      console.log('⚠️ Transcripción ya en proceso');
       return;
     }
     
@@ -248,10 +244,6 @@ const EnhancedVoiceNotesModule = () => {
         }
       }, 200);
       
-      console.log('📡 Enviando solicitud de transcripción:', {
-        noteId: note.id,
-        fileName: note.fileName
-      });
       
       const response = await axios.post(`${API_ENDPOINTS.ENHANCED_NOTES}/api/transcribe`, {
         noteId: note.id,
@@ -260,7 +252,6 @@ const EnhancedVoiceNotesModule = () => {
       
       clearInterval(progressInterval);
       
-      console.log('✅ Respuesta de transcripción:', response.data);
       
       if (!response.data.success) {
         throw new Error(response.data.error || 'Error en transcripción');
@@ -292,6 +283,61 @@ const EnhancedVoiceNotesModule = () => {
         console.error('Error eliminando nota:', error);
       }
     }
+  };
+
+  /**
+   * Inicia el proceso de archivo mostrando el modal de confirmación
+   * @param {Object} note - La nota de voz a archivar
+   */
+  const archiveVoiceNote = async (note) => {
+    setShowArchiveConfirm(note.id);
+  };
+
+  /**
+   * Confirma y ejecuta el archivo de la nota de voz
+   * @param {Object} note - La nota de voz a archivar
+   */
+  const confirmArchive = async (note) => {
+    try {
+      setShowArchiveConfirm(null);
+      setArchivingNoteId(note.id);
+      
+      const response = await axios.post(`${API_ENDPOINTS.ENHANCED_NOTES}/api/voice-notes/${note.id}/archive`);
+      if (response.data.success) {
+        // Animación de desvanecimiento antes de eliminar
+        setTimeout(() => {
+          setVoiceNotes(prev => prev.filter(n => n.id !== note.id));
+          setArchivingNoteId(null);
+          setArchivedCount(prev => prev + 1);
+          
+          // Mostrar notificación de éxito
+          setShowNotification({
+            type: 'success',
+            message: '✅ Nota archivada exitosamente',
+            details: note.title || 'Nota de voz'
+          });
+          
+          // Ocultar notificación después de 3 segundos
+          setTimeout(() => setShowNotification(null), 3000);
+        }, 300);
+      }
+    } catch (error) {
+      console.error('Error archivando nota:', error);
+      setArchivingNoteId(null);
+      setShowNotification({
+        type: 'error',
+        message: '❌ Error al archivar la nota',
+        details: error.message
+      });
+      setTimeout(() => setShowNotification(null), 3000);
+    }
+  };
+
+  /**
+   * Cancela el proceso de archivo
+   */
+  const cancelArchive = () => {
+    setShowArchiveConfirm(null);
   };
   
   const formatDuration = (seconds) => {
@@ -448,10 +494,8 @@ const EnhancedVoiceNotesModule = () => {
       try {
         await axios.post('http://localhost:3001/api/chronology', chronologyEntry);
       } catch (err) {
-        console.log('Guardado solo localmente');
       }
       
-      console.log('✅ Prompt guardado en cronología');
       
       // Limpiar estado de edición
       setEditingPromptFor(null);
@@ -482,7 +526,6 @@ const EnhancedVoiceNotesModule = () => {
 
     try {
       await navigator.clipboard.writeText(prompt);
-      console.log('📋 Prompt copiado al portapapeles');
       
       // Feedback visual temporal
       const originalText = generatedPrompts[noteId];
@@ -526,7 +569,6 @@ const EnhancedVoiceNotesModule = () => {
         throw new Error('Error al actualizar estado de procesado');
       }
       
-      console.log(`✅ Nota ${noteId} marcada como ${newProcessedStatus ? 'procesada' : 'no procesada'}`);
     } catch (error) {
       console.error('Error actualizando estado de procesado:', error);
       // Revertir cambio local si falla
@@ -574,6 +616,15 @@ const EnhancedVoiceNotesModule = () => {
               <Square className="w-4 h-4 text-purple-200" />
               <span className="text-sm font-medium">{pendingNotes} pendientes</span>
             </div>
+            {archivedCount > 0 && (
+              <>
+                <div className="h-4 w-px bg-purple-400/30"></div>
+                <div className="flex items-center gap-2">
+                  <Archive className="w-4 h-4 text-purple-200" />
+                  <span className="text-sm font-medium">{archivedCount} archivadas</span>
+                </div>
+              </>
+            )}
             <div className="h-4 w-px bg-purple-400/30"></div>
             <div className="flex items-center gap-2">
               <Brain className="w-4 h-4 text-purple-200" />
@@ -793,10 +844,17 @@ const EnhancedVoiceNotesModule = () => {
                     key={note.id}
                     id={`note-${note.id}`}
                     initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
+                    animate={{ 
+                      opacity: archivingNoteId === note.id ? 0.3 : 1, 
+                      x: archivingNoteId === note.id ? 100 : 0,
+                      scale: archivingNoteId === note.id ? 0.9 : 1
+                    }}
                     exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.3 }}
                     className={`rounded-xl p-4 transition-all ${
-                      highlightedNoteId === note.id
+                      archivingNoteId === note.id
+                        ? 'bg-yellow-50 border-2 border-yellow-400'
+                        : highlightedNoteId === note.id
                         ? 'bg-indigo-100 border-2 border-indigo-500 shadow-lg ring-4 ring-indigo-200 animate-pulse'
                         : note.processed 
                           ? 'bg-green-50 border border-green-200 opacity-75' 
@@ -1127,6 +1185,14 @@ const EnhancedVoiceNotesModule = () => {
                         </button>
                         
                         <button
+                          onClick={() => archiveVoiceNote(note)}
+                          className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                          title="Archivar"
+                        >
+                          <Archive className="w-4 h-4" />
+                        </button>
+                        
+                        <button
                           onClick={() => deleteVoiceNote(note)}
                           className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                           title="Eliminar"
@@ -1319,9 +1385,7 @@ const EnhancedVoiceNotesModule = () => {
             transcription={selectedNoteForAutoPrompt.transcription || ''}
             voiceNote={selectedNoteForAutoPrompt}
             onPromptsGenerated={(prompts) => {
-              console.log('Prompts generados:', prompts);
               // Aquí puedes hacer algo con los prompts generados
-              // Por ejemplo, guardarlos o enviarlos a los módulos correspondientes
             }}
             onClose={() => {
               setShowAutoPromptGenerator(false);
@@ -1330,6 +1394,82 @@ const EnhancedVoiceNotesModule = () => {
           />
         </AnimatePresence>
       )}
+
+      {/* Modal de Confirmación para Archivar */}
+      <AnimatePresence>
+        {showArchiveConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+            onClick={cancelArchive}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-xl p-6 max-w-md mx-4 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 bg-indigo-100 rounded-full">
+                  <Archive className="w-6 h-6 text-indigo-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  ¿Archivar esta nota de voz?
+                </h3>
+              </div>
+              
+              <p className="text-gray-600 mb-6">
+                La nota se moverá al archivo y podrás restaurarla más tarde desde el módulo de archivos.
+              </p>
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={cancelArchive}
+                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => {
+                    const note = filteredNotes.find(n => n.id === showArchiveConfirm);
+                    if (note) confirmArchive(note);
+                  }}
+                  className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Archive className="w-4 h-4" />
+                  Archivar
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Notificación Flotante */}
+      <AnimatePresence>
+        {showNotification && (
+          <motion.div
+            initial={{ opacity: 0, y: -50, x: '-50%' }}
+            animate={{ opacity: 1, y: 0, x: '-50%' }}
+            exit={{ opacity: 0, y: -50, x: '-50%' }}
+            className={`fixed top-4 left-1/2 z-50 px-6 py-3 rounded-lg shadow-lg ${
+              showNotification.type === 'success' 
+                ? 'bg-green-500 text-white' 
+                : 'bg-red-500 text-white'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-lg font-medium">{showNotification.message}</span>
+              {showNotification.details && (
+                <span className="text-sm opacity-90">({showNotification.details})</span>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

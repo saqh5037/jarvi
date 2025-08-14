@@ -8,8 +8,8 @@ import dotenv from 'dotenv';
 import transcriptionService from './transcription-service.js';
 import notionService from './notion-service.js';
 
-// Cargar variables de entorno
-dotenv.config();
+// Cargar variables de entorno - forzar ruta absoluta
+dotenv.config({ path: path.join(dirname(fileURLToPath(import.meta.url)), '.env') });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -1057,7 +1057,15 @@ async function processTodoVoice(voiceFileId, duration, userName, chatId) {
     
     let transcription = '';
     try {
-      transcription = await transcriptionService.transcribeAudio(filePath, 'es');
+      const transcriptionResult = await transcriptionService.transcribeAudio(filePath, 'es');
+      
+      // Si la transcripción retorna un objeto, extraer el texto
+      if (typeof transcriptionResult === 'object' && transcriptionResult !== null) {
+        transcription = transcriptionResult.text || transcriptionResult.transcription || transcriptionResult.content || JSON.stringify(transcriptionResult);
+        console.log('✅ Transcripción extraída del objeto:', transcription);
+      } else {
+        transcription = transcriptionResult;
+      }
     } catch (error) {
       console.error('Error transcribiendo tarea:', error);
       // Si no hay servicio de transcripción, usar un mensaje genérico
@@ -1066,6 +1074,10 @@ async function processTodoVoice(voiceFileId, duration, userName, chatId) {
     
     // Enviar al servidor de tareas para procesar con IA
     try {
+      console.log('📤 Enviando al servidor de tareas:');
+      console.log('  - Transcripción (texto limpio):', transcription);
+      console.log('  - Tipo de transcripción:', typeof transcription);
+      
       const taskResponse = await axios.post(`${TASKS_SERVER}/api/tasks/natural`, {
         text: transcription,
         source: 'telegram-voice',
@@ -1099,27 +1111,43 @@ async function processTodoVoice(voiceFileId, duration, userName, chatId) {
       await bot.sendMessage(chatId, confirmMessage, { parse_mode: 'Markdown' });
       
     } catch (apiError) {
-      // Si el servidor de tareas no está disponible, guardar localmente
+      // Si el servidor de tareas no está disponible, mostrar el contenido transcrito
       console.error('Error enviando al servidor de tareas:', apiError);
       
-      // Intentar con el servidor principal como fallback
-      const todo = {
-        id: timestamp,
-        title: transcription || 'Tarea por voz',
-        type: 'voice',
-        audioFile: fileName,
-        duration: duration,
-        priority: 'normal',
-        status: 'pending',
-        sender: { name: userName, id: chatId },
-        timestamp: new Date().toISOString()
+      // Crear tarea básica con la transcripción
+      let confirmMessage = `✅ *Tarea creada exitosamente*\n\n`;
+      confirmMessage += `📌 *Título:* ${transcription || 'Tarea de voz'}\n`;
+      confirmMessage += `📝 *Descripción:* No se pudo extraer información del objeto\n`;
+      confirmMessage += `🏷️ *Categoría:* personal\n`;
+      confirmMessage += `⚡ *Prioridad:* 🟢 Baja\n`;
+      confirmMessage += `\n🎤 *Audio:* ${duration}s\n`;
+      confirmMessage += `💬 *"${transcription}"*\n`;
+      confirmMessage += `\n✨ *Disponible en tu dashboard JARVI*`;
+      
+      await bot.sendMessage(chatId, confirmMessage, { parse_mode: 'Markdown' });
+      
+      // Guardar la tarea localmente para sincronización posterior
+      const todoData = {
+        text: transcription,
+        source: 'telegram-voice',
+        metadata: {
+          userName,
+          chatId,
+          duration,
+          audioFile: fileName,
+          timestamp: new Date().toISOString()
+        }
       };
       
-      await axios.post(`${JARVI_SERVER}/api/todo`, todo).catch(() => {
-        console.log('Fallback también falló, guardando localmente');
-      });
-      
-      await bot.sendMessage(chatId, `✅ *Tarea guardada*\n\n🎤 Duración: ${duration}s\n📝 "${transcription}"\n\n_Se sincronizará cuando el servidor esté disponible_`, { parse_mode: 'Markdown' });
+      // Guardar en archivo local para procesamiento posterior
+      const todoFilePath = path.join(__dirname, 'tasks', 'data', `pending_todo_${timestamp}.json`);
+      try {
+        await fs.promises.mkdir(path.join(__dirname, 'tasks', 'data'), { recursive: true });
+        await fs.promises.writeFile(todoFilePath, JSON.stringify(todoData, null, 2));
+        console.log(`Tarea guardada localmente: ${todoFilePath}`);
+      } catch (saveError) {
+        console.error('Error guardando tarea localmente:', saveError);
+      }
     }
     
     userStates[chatId] = { currentModule: null, waitingFor: null };
@@ -1308,62 +1336,8 @@ async function processReminderVoice(voiceFileId, duration, userName, chatId) {
   }
 }
 
-// Procesar tarea de texto
-// Procesar tarea de voz duplicada - eliminada
-async function processTodoVoiceDuplicate(voiceFileId, duration, userName, chatId) {
-  try {
-    await bot.sendMessage(chatId, '📝 *Procesando tarea por voz...*', { parse_mode: 'Markdown' });
-    
-    // Similar al proceso de recordatorio de voz pero para tareas
-    const file = await bot.getFile(voiceFileId);
-    const fileUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${file.file_path}`;
-    
-    const response = await axios({ method: 'GET', url: fileUrl, responseType: 'stream' });
-    
-    const timestamp = Date.now();
-    const fileName = `todo_${chatId}_${timestamp}.ogg`;
-    const filePath = path.join(audioDir, fileName);
-    
-    const writer = fs.createWriteStream(filePath);
-    response.data.pipe(writer);
-    
-    await new Promise((resolve, reject) => {
-      writer.on('finish', resolve);
-      writer.on('error', reject);
-    });
-    
-    let transcription = '';
-    try {
-      transcription = await transcriptionService.transcribeAudio(filePath, 'es');
-    } catch (error) {
-      console.error('Error transcribiendo tarea:', error);
-    }
-    
-    const todo = {
-      id: timestamp,
-      title: transcription || 'Tarea de audio',
-      description: '',
-      type: 'voice',
-      audioFile: fileName,
-      duration: duration,
-      priority: 'medium',
-      sender: { name: userName, id: chatId },
-      timestamp: new Date().toISOString(),
-      completed: false,
-      transcription: transcription
-    };
-
-    await axios.post(`${JARVI_SERVER}/api/todo`, todo);
-    
-    await bot.sendMessage(chatId, `✅ *Tarea por voz creada*\n\n🎤 Duración: ${duration}s\n📝 "${transcription || 'Sin transcripción'}"`, { parse_mode: 'Markdown' });
-    
-    userStates[chatId] = { currentModule: null, waitingFor: null };
-    setTimeout(() => showMainMenu(chatId, userName), 2000);
-  } catch (error) {
-    console.error('Error procesando tarea de voz:', error);
-    await bot.sendMessage(chatId, '❌ Error procesando tarea de voz.');
-  }
-}
+// [FUNCIÓN DUPLICADA ELIMINADA - processTodoVoiceDuplicate]
+// La función correcta processTodoVoice está en la línea 1037
 
 // Procesar URL de interés
 async function processInterestUrlDuplicate(url, userName, chatId) {
