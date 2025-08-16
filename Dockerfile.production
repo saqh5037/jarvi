@@ -1,52 +1,177 @@
-# Dockerfile for JARVI Application - Production
-FROM node:18-alpine
+# ===================================
+# JARVI Production Docker Image
+# Version: 1.0.0
+# ===================================
 
-# Install system dependencies
-RUN apk add --no-cache python3 make g++ ffmpeg
+# Stage 1: Build frontend
+FROM node:18-alpine AS frontend-builder
 
-# Set working directory
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install all dependencies (including dev for build)
-RUN npm ci
+# Install dependencies
+RUN npm ci --only=production
 
-# Copy application files
+# Copy source code
 COPY . .
 
+# Build frontend for production
+RUN npm run build
+
+# Stage 2: Production image
+FROM node:18-alpine
+
+# Install system dependencies
+RUN apk add --no-cache \
+    python3 \
+    py3-pip \
+    ffmpeg \
+    git \
+    bash \
+    curl \
+    && pip3 install edge-tts \
+    && pip3 install openai-whisper
+
+# Create app directory
+WORKDIR /app
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+# Copy package files
+COPY package*.json ./
+
+# Install production dependencies only
+RUN npm ci --only=production && \
+    npm cache clean --force
+
+# Copy built frontend from previous stage
+COPY --from=frontend-builder /app/dist ./dist
+
+# Copy server files and source code
+COPY server*.js ./
+COPY src ./src
+COPY public ./public
+COPY index.html ./
+COPY vite.config.js ./
+COPY tailwind.config.js ./
+COPY postcss.config.js ./
+COPY cors-config.mjs ./
+COPY transcription-service.js ./
+COPY notion-service.js ./
+COPY telegram-bot.js ./
+COPY email-service.js ./
+
 # Create necessary directories
-RUN mkdir -p /app/voice-notes \
-    /app/data/reminders \
-    /app/data/todos \
-    /app/data/meetings \
-    /app/data/interests \
+RUN mkdir -p \
+    /app/voice-notes/data \
+    /app/meetings/audio \
+    /app/meetings/data \
     /app/tasks/data \
     /app/tasks/audio \
-    /app/meetings/recordings
-
-# Expose all ports
-EXPOSE 5173 3001 3002 3003 3004
+    /app/data/interests \
+    /app/data/meetings \
+    /app/data/reminders \
+    /app/data/todos \
+    /app/logs \
+    /app/temp/tts \
+    && chown -R nodejs:nodejs /app
 
 # Create startup script
-RUN echo '#!/bin/sh' > /app/start.sh && \
-    echo 'echo "🚀 Starting JARVI services..."' >> /app/start.sh && \
-    echo '' >> /app/start.sh && \
-    echo '# Start backend services' >> /app/start.sh && \
-    echo 'node server-enhanced-notes.js &' >> /app/start.sh && \
-    echo 'node server-meetings.js &' >> /app/start.sh && \
-    echo 'node server-tasks.js &' >> /app/start.sh && \
-    echo 'node server-voice-notes.js &' >> /app/start.sh && \
-    echo '' >> /app/start.sh && \
-    echo '# Start Telegram bot if configured' >> /app/start.sh && \
-    echo 'if [ -n "$TELEGRAM_BOT_TOKEN" ]; then' >> /app/start.sh && \
-    echo '  node telegram-bot.js &' >> /app/start.sh && \
-    echo 'fi' >> /app/start.sh && \
-    echo '' >> /app/start.sh && \
-    echo '# Start frontend (development mode for hot reload)' >> /app/start.sh && \
-    echo 'npm run dev -- --host 0.0.0.0' >> /app/start.sh && \
-    chmod +x /app/start.sh
+RUN cat > /app/start.sh << 'EOF'
+#!/bin/bash
+set -e
 
-# Use the startup script
+echo "🚀 Starting JARVI Production Services..."
+
+# Function to check if port is available
+check_port() {
+    if lsof -Pi :$1 -sTCP:LISTEN -t >/dev/null 2>&1; then
+        echo "⚠️  Port $1 is already in use"
+        return 1
+    fi
+    return 0
+}
+
+# Start backend services
+echo "📦 Starting backend services..."
+
+# Enhanced Notes Service
+if check_port 3001; then
+    node server-enhanced-notes.js &
+    echo "✅ Enhanced Notes Service (3001)"
+fi
+
+# Meetings Service
+if check_port 3002; then
+    node server-meetings.js &
+    echo "✅ Meetings Service (3002)"
+fi
+
+# Tasks Service
+if check_port 3003; then
+    node server-tasks.js &
+    echo "✅ Tasks Service (3003)"
+fi
+
+# Voice Notes Service
+if check_port 3004; then
+    node server-voice-notes.js &
+    echo "✅ Voice Notes Service (3004)"
+fi
+
+# AI Classifier Service
+if check_port 3005; then
+    node server-ai-classifier.js &
+    echo "✅ AI Classifier Service (3005)"
+fi
+
+# Edge TTS Service
+if check_port 3007; then
+    node server-edge-tts.js &
+    echo "✅ Edge TTS Service (3007)"
+fi
+
+# Start Telegram Bot
+echo "🤖 Starting Telegram Bot..."
+node telegram-bot.js &
+
+# Wait for services to initialize
+sleep 5
+
+# Start main server
+echo "🌐 Starting main server..."
+node server.js &
+
+# Start frontend (production mode)
+echo "🎨 Starting frontend server..."
+
+# If in development mode, use vite
+if [ "$NODE_ENV" = "development" ]; then
+    npm run dev
+else
+    # In production, serve the built files
+    npx serve -s dist -l 5173
+fi
+
+# Keep container running
+wait
+EOF
+
+RUN chmod +x /app/start.sh
+
+# Switch to non-root user
+USER nodejs
+
+# Expose all necessary ports
+EXPOSE 5173 3001 3002 3003 3004 3005 3007
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:5173 || exit 1
+
+# Start the application
 CMD ["/app/start.sh"]

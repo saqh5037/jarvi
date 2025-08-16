@@ -18,12 +18,20 @@ dist-ssr
 .env.development.local
 .env.test.local
 .env.production.local
+.env.production
 
 # Generated and temporary files
 voice-notes/
 tasks/data/
 tasks/audio/
 meetings/data/
+meetings/audio/
+data/
+docker-data/
+backups/
+temp/
+*.tmp
+*.temp
 
 # Editor directories and files
 .vscode/*
