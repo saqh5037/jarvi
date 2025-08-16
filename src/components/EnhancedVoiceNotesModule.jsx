@@ -39,7 +39,9 @@ import {
   Copy,
   RefreshCw,
   Archive,
-  Sparkles as SparklesIcon
+  Sparkles as SparklesIcon,
+  VolumeX,
+  Headphones
 } from 'lucide-react';
 import io from 'socket.io-client';
 import axios from 'axios';
@@ -48,6 +50,8 @@ import PromptGenerator from './PromptGenerator';
 import VoiceNotesSearch from './VoiceNotesSearch';
 import AutoPromptGenerator from './AutoPromptGenerator';
 import { API_ENDPOINTS, SOCKET_URLS } from '../config/api';
+import useVoiceReader from '../hooks/useVoiceReader';
+import VoiceReadingSystem from './VoiceReadingSystem';
 
 const EnhancedVoiceNotesModule = () => {
   const [voiceNotes, setVoiceNotes] = useState([]);
@@ -59,6 +63,9 @@ const EnhancedVoiceNotesModule = () => {
   const [showProcessor, setShowProcessor] = useState(false);
   const [showPromptGenerator, setShowPromptGenerator] = useState(false);
   const [selectedNoteForPrompt, setSelectedNoteForPrompt] = useState(null);
+  const [readingNoteId, setReadingNoteId] = useState(null);
+  const [showVoiceReader, setShowVoiceReader] = useState(false);
+  const [selectedNoteForReading, setSelectedNoteForReading] = useState(null);
   const [aiStats, setAiStats] = useState({
     totalTokens: 0,
     totalCost: 0,
@@ -86,6 +93,15 @@ const EnhancedVoiceNotesModule = () => {
   const audioRef = useRef(null);
   const socketRef = useRef(null);
   const editTextareaRef = useRef(null);
+  
+  const {
+    isReading,
+    speak,
+    stop,
+    pause,
+    resume,
+    isPaused
+  } = useVoiceReader();
   
   // Efecto para hacer scroll a la nota cuando cambia scrollToNoteId
   useEffect(() => {
@@ -422,6 +438,35 @@ const EnhancedVoiceNotesModule = () => {
     }
   };
   
+  // Funciones de lectura de voz
+  const startReadingNote = (note) => {
+    if (!note.transcription) return;
+    
+    if (isReading && readingNoteId === note.id) {
+      // Si ya está leyendo esta nota, detener
+      stop();
+      setReadingNoteId(null);
+    } else {
+      // Preparar texto para leer
+      const textToRead = `
+        Nota de voz del ${formatTime(note.timestamp)}.
+        ${note.transcription}.
+        ${note.processed ? 'Esta nota ya ha sido procesada.' : ''}
+      `;
+      
+      speak(textToRead, {
+        onStart: () => setReadingNoteId(note.id),
+        onEnd: () => setReadingNoteId(null)
+      });
+    }
+  };
+  
+  const openVoiceReaderForNote = (note) => {
+    if (!note.transcription) return;
+    setSelectedNoteForReading(note);
+    setShowVoiceReader(true);
+  };
+
   // Función para generar prompt con IA
   const generatePromptForNote = async (note) => {
     if (!note.transcription) {
@@ -1162,6 +1207,36 @@ const EnhancedVoiceNotesModule = () => {
                           )}
                         </button>
                         
+                        {/* Botón de lectura rápida */}
+                        {note.transcription && (
+                          <button
+                            onClick={() => startReadingNote(note)}
+                            className={`p-2 rounded-lg transition-all ${
+                              isReading && readingNoteId === note.id
+                                ? 'bg-blue-100 text-blue-600'
+                                : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
+                            }`}
+                            title={isReading && readingNoteId === note.id ? 'Detener lectura' : 'Leer nota'}
+                          >
+                            {isReading && readingNoteId === note.id ? (
+                              <VolumeX className="w-4 h-4" />
+                            ) : (
+                              <Volume2 className="w-4 h-4" />
+                            )}
+                          </button>
+                        )}
+                        
+                        {/* Botón de lector avanzado */}
+                        {note.transcription && (
+                          <button
+                            onClick={() => openVoiceReaderForNote(note)}
+                            className="p-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-all"
+                            title="Abrir lector avanzado"
+                          >
+                            <Headphones className="w-4 h-4" />
+                          </button>
+                        )}
+                        
                         {/* Botón de Generar Prompt individual */}
                         {note.transcription && (
                           <button
@@ -1447,6 +1522,24 @@ const EnhancedVoiceNotesModule = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Sistema de lectura de voz avanzado */}
+      {showVoiceReader && selectedNoteForReading && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="max-w-4xl w-full">
+            <VoiceReadingSystem
+              text={selectedNoteForReading.transcription}
+              title={`Nota del ${formatTime(selectedNoteForReading.timestamp)}`}
+              onClose={() => {
+                setShowVoiceReader(false);
+                setSelectedNoteForReading(null);
+              }}
+              allowSummary={true}
+              mode="expanded"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Notificación Flotante */}
       <AnimatePresence>

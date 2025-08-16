@@ -728,6 +728,139 @@ app.listen(PORT, '0.0.0.0', () => {
 ║  • Categorización inteligente             ║
 ║  • Análisis de complejidad                ║
 ║  • Detección de sentimiento               ║
+║  • Generación de resúmenes                ║
+║  • Optimización para síntesis de voz      ║
 ╚════════════════════════════════════════════╝
   `);
+});
+
+// Nuevo endpoint para generar resúmenes de texto
+app.post('/api/generate-summary', async (req, res) => {
+  try {
+    const { text, maxLength = 150 } = req.body;
+    
+    if (!text) {
+      return res.status(400).json({ error: 'Se requiere texto para resumir' });
+    }
+
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    
+    const prompt = `
+    Analiza el siguiente texto y proporciona un resumen conciso y claro en español.
+    
+    TEXTO A RESUMIR:
+    "${text}"
+    
+    INSTRUCCIONES:
+    1. El resumen debe tener máximo ${maxLength} palabras
+    2. Debe capturar los puntos más importantes
+    3. Usar un lenguaje claro y directo
+    4. Si el texto es una tarea o instrucción, mantener el contexto de acción
+    5. Si hay múltiples temas, priorizarlos por importancia
+    
+    Responde en formato JSON con la siguiente estructura:
+    {
+      "summary": "resumen del texto",
+      "keyPoints": ["punto clave 1", "punto clave 2", "punto clave 3"],
+      "wordCount": número de palabras en el resumen,
+      "topics": ["tema1", "tema2"],
+      "actionRequired": true/false
+    }
+    
+    IMPORTANTE: Responde SOLO con el JSON, sin markdown ni explicaciones adicionales.
+    `;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const responseText = response.text();
+    
+    try {
+      // Limpiar respuesta de posibles marcadores de código
+      const cleanedResponse = responseText
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
+      
+      const summaryData = JSON.parse(cleanedResponse);
+      
+      res.json(summaryData);
+    } catch (parseError) {
+      // Si falla el parsing, enviar un resumen básico
+      const basicSummary = responseText.substring(0, 500);
+      res.json({
+        summary: basicSummary,
+        keyPoints: [],
+        wordCount: basicSummary.split(' ').length,
+        topics: [],
+        actionRequired: false
+      });
+    }
+  } catch (error) {
+    console.error('Error generando resumen:', error);
+    res.status(500).json({ 
+      error: 'Error al generar resumen',
+      details: error.message 
+    });
+  }
+});
+
+// Endpoint para análisis de voz y generación de texto optimizado para TTS
+app.post('/api/optimize-for-speech', async (req, res) => {
+  try {
+    const { text, language = 'es-ES' } = req.body;
+    
+    if (!text) {
+      return res.status(400).json({ error: 'Se requiere texto para optimizar' });
+    }
+
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    
+    const prompt = `
+    Optimiza el siguiente texto para síntesis de voz en español, haciéndolo más natural y fluido.
+    
+    TEXTO ORIGINAL:
+    "${text}"
+    
+    INSTRUCCIONES:
+    1. Reemplazar abreviaciones con palabras completas
+    2. Convertir números a palabras cuando sea apropiado
+    3. Añadir pausas naturales con puntuación
+    4. Simplificar frases muy largas
+    5. Eliminar caracteres especiales problemáticos
+    6. Mantener el significado original
+    
+    Responde en formato JSON:
+    {
+      "optimizedText": "texto optimizado para voz",
+      "readingTime": "tiempo estimado en segundos",
+      "modifications": ["lista de cambios realizados"]
+    }
+    `;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const responseText = response.text();
+    
+    try {
+      const cleanedResponse = responseText
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
+      
+      const optimizedData = JSON.parse(cleanedResponse);
+      res.json(optimizedData);
+    } catch (parseError) {
+      res.json({
+        optimizedText: text,
+        readingTime: Math.ceil(text.length / 15),
+        modifications: []
+      });
+    }
+  } catch (error) {
+    console.error('Error optimizando para voz:', error);
+    res.status(500).json({ 
+      error: 'Error al optimizar texto',
+      details: error.message 
+    });
+  }
 });

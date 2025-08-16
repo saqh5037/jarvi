@@ -38,6 +38,14 @@ node server-voice-notes.js &
 BACKEND_PID4=$!
 echo "   ✅ Servidor de notas de voz (3004)"
 
+node server-ai-classifier.js &
+BACKEND_PID5=$!
+echo "   ✅ Servidor de clasificación IA (3005)"
+
+node server-edge-tts.js &
+BACKEND_PID6=$!
+echo "   ✅ Servidor Edge TTS - Voces Premium (3007)"
+
 # Esperar un momento para que los backends inicien
 sleep 3
 
@@ -79,7 +87,7 @@ echo "========================================="
 cleanup() {
     echo ""
     echo "🛑 Deteniendo servicios JARVI..."
-    kill $FRONTEND_PID $BACKEND_PID1 $BACKEND_PID2 $BACKEND_PID3 $BACKEND_PID4 $BOT_PID 2>/dev/null
+    kill $FRONTEND_PID $BACKEND_PID1 $BACKEND_PID2 $BACKEND_PID3 $BACKEND_PID4 $BACKEND_PID5 $BACKEND_PID6 $BOT_PID 2>/dev/null
     pkill -f "node server" 2>/dev/null
     pkill -f "npm run dev" 2>/dev/null
     pkill -f "vite" 2>/dev/null

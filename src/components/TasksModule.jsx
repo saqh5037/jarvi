@@ -26,11 +26,17 @@ import {
   RefreshCw,
   Play,
   Pause,
-  Volume2
+  Volume2,
+  VolumeX,
+  Headphones,
+  Music
 } from 'lucide-react';
 import io from 'socket.io-client';
 import axios from 'axios';
 import { API_ENDPOINTS, SOCKET_URLS } from '../config/api';
+import useVoiceReader from '../hooks/useVoiceReader';
+import VoiceReadingSystem from './VoiceReadingSystem';
+import KaraokeReadingMode from './KaraokeReadingMode';
 
 const TASKS_SERVER = API_ENDPOINTS.TASKS;
 
@@ -45,7 +51,21 @@ const TasksModule = () => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [playingAudio, setPlayingAudio] = useState(null);
+  const [readingTaskId, setReadingTaskId] = useState(null);
+  const [showVoiceReader, setShowVoiceReader] = useState(false);
+  const [selectedTaskForReading, setSelectedTaskForReading] = useState(null);
+  const [showKaraokeMode, setShowKaraokeMode] = useState(false);
+  const [selectedTaskForKaraoke, setSelectedTaskForKaraoke] = useState(null);
   const audioRef = useRef(null);
+  
+  const {
+    isReading,
+    speak,
+    stop,
+    pause,
+    resume,
+    isPaused
+  } = useVoiceReader();
 
   // Colores para prioridades
   const priorityColors = {
@@ -211,6 +231,45 @@ const TasksModule = () => {
         setPlayingAudio(audioFile);
       }
     }
+  };
+
+  // Funciones de lectura de voz
+  const startReadingTask = (task) => {
+    if (isReading && readingTaskId === task.id) {
+      // Si ya está leyendo esta tarea, detener
+      stop();
+      setReadingTaskId(null);
+    } else {
+      // Preparar texto para leer
+      const priority = task.priority || 'normal';
+      const category = task.category || 'general';
+      const dueDate = task.dueDate ? new Date(task.dueDate).toLocaleDateString('es-ES') : 'sin fecha límite';
+      
+      const textToRead = `
+        Tarea: ${task.title}.
+        ${task.description ? `Descripción: ${task.description}.` : ''}
+        Prioridad: ${priority === 'urgent' ? 'urgente' : priority === 'high' ? 'alta' : priority === 'medium' ? 'media' : 'baja'}.
+        Categoría: ${category}.
+        Fecha límite: ${dueDate}.
+        Estado: ${task.status === 'completed' ? 'completada' : task.status === 'in_progress' ? 'en progreso' : 'pendiente'}.
+        ${task.assignedTo ? `Asignada a: ${task.assignedTo}.` : ''}
+      `;
+      
+      speak(textToRead, {
+        onStart: () => setReadingTaskId(task.id),
+        onEnd: () => setReadingTaskId(null)
+      });
+    }
+  };
+
+  const openVoiceReaderForTask = (task) => {
+    setSelectedTaskForReading(task);
+    setShowVoiceReader(true);
+  };
+
+  const openKaraokeModeForTask = (task) => {
+    setSelectedTaskForKaraoke(task);
+    setShowKaraokeMode(true);
   };
 
   const formatAudioDuration = (seconds) => {
@@ -445,6 +504,32 @@ const TasksModule = () => {
                 </div>
 
                 <div className="flex items-center gap-2">
+                  {/* Botón de lectura rápida */}
+                  <button
+                    onClick={() => startReadingTask(task)}
+                    className={`p-2 rounded-lg transition-all ${
+                      isReading && readingTaskId === task.id
+                        ? 'bg-blue-100 text-blue-600'
+                        : 'hover:bg-gray-100 text-gray-600'
+                    }`}
+                    title={isReading && readingTaskId === task.id ? 'Detener lectura' : 'Leer tarea'}
+                  >
+                    {isReading && readingTaskId === task.id ? (
+                      <VolumeX className="w-4 h-4" />
+                    ) : (
+                      <Volume2 className="w-4 h-4" />
+                    )}
+                  </button>
+                  
+                  {/* Botón de lector avanzado */}
+                  <button
+                    onClick={() => openVoiceReaderForTask(task)}
+                    className="p-2 hover:bg-purple-100 text-purple-600 rounded-lg transition-all"
+                    title="Abrir lector avanzado"
+                  >
+                    <Headphones className="w-4 h-4" />
+                  </button>
+                  
                   <span className="text-2xl">{categoryIcons[task.category]}</span>
                   <button
                     onClick={() => deleteTask(task.id)}
@@ -465,9 +550,27 @@ const TasksModule = () => {
                   </div>
                 )}
 
+                {/* Botón de Karaoke - SIEMPRE VISIBLE */}
+                <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-pink-50 to-purple-50 rounded-lg border-2 border-pink-300">
+                  <button
+                    onClick={() => openKaraokeModeForTask(task)}
+                    className="p-3 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:scale-105 animate-pulse"
+                    title="🎤 Modo Karaoke"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Music className="w-6 h-6" />
+                      <span className="text-lg font-bold">🎤 KARAOKE</span>
+                    </div>
+                  </button>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-gray-700">Leer tarea en modo Karaoke</p>
+                    <p className="text-xs text-gray-500">Click para activar lectura con efectos visuales</p>
+                  </div>
+                </div>
+
                 {/* Audio de voz */}
                 {task.audioFile && (
-                  <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
+                  <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg mt-2">
                     <button
                       onClick={() => playAudio(task.audioFile)}
                       className="p-2 bg-purple-600 hover:bg-purple-700 rounded-full transition-colors"
@@ -635,6 +738,35 @@ const TasksModule = () => {
         onEnded={() => setPlayingAudio(null)}
         className="hidden"
       />
+
+      {/* Sistema de lectura de voz avanzado */}
+      {showVoiceReader && selectedTaskForReading && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="max-w-3xl w-full">
+            <VoiceReadingSystem
+              text={`${selectedTaskForReading.title}. ${selectedTaskForReading.description || ''}`}
+              title={selectedTaskForReading.title}
+              onClose={() => {
+                setShowVoiceReader(false);
+                setSelectedTaskForReading(null);
+              }}
+              allowSummary={true}
+              mode="expanded"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Modo Karaoke */}
+      {showKaraokeMode && selectedTaskForKaraoke && (
+        <KaraokeReadingMode
+          task={selectedTaskForKaraoke}
+          onClose={() => {
+            setShowKaraokeMode(false);
+            setSelectedTaskForKaraoke(null);
+          }}
+        />
+      )}
     </div>
   );
 };

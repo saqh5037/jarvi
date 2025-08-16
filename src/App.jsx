@@ -10,9 +10,6 @@ import DashboardStats from './components/DashboardStats'
 import MainDashboard from './components/MainDashboard'
 import ModernMainDashboard from './components/ModernMainDashboard'
 import TasksModule from './components/TasksModule'
-import TasksModuleTest from './components/TasksModuleTest'
-import TasksModuleNew from './components/TasksModuleNew'
-import TasksModuleSimple from './components/TasksModuleSimple'
 
 /**
  * Componente principal de la aplicación Jarvi

@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<!--
+  Página de prueba para el sistema de lectura de voz con Edge TTS
+  Permite probar las voces neurales y ajustar parámetros de lectura
+  Autor: JARVI System
+  Fecha: 16/08/2025
+-->
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Sistema de Lectura de Voz JARVI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        
+        .test-section h2 {
+            color: #4a5568;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .test-text {
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            line-height: 1.6;
+            color: #2d3748;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+        
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+        
+        .btn-danger {
+            background: #fc8181;
+            color: white;
+        }
+        
+        .voice-selector {
+            margin-top: 15px;
+        }
+        
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+        }
+        
+        .speed-controls {
+            display: flex;
+            gap: 5px;
+            margin-top: 15px;
+        }
+        
+        .speed-btn {
+            padding: 8px 15px;
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .speed-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0fff4;
+            border: 2px solid #9ae6b4;
+            border-radius: 8px;
+            color: #22543d;
+            font-weight: 500;
+        }
+        
+        .highlight {
+            background-color: #fef3c7;
+            padding: 2px 4px;
+            border-radius: 3px;
+            transition: all 0.3s;
+        }
+        
+        .current-word {
+            background-color: #93c5fd;
+            color: #1e3a8a;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎙️ Test Sistema de Lectura de Voz</h1>
+        <p class="subtitle">Prueba del sistema híbrido gratuito de JARVI</p>
+        
+        <!-- Test 1: Web Speech API Básico -->
+        <div class="test-section">
+            <h2>Test 1: Web Speech API (Nativo)</h2>
+            <div class="test-text" id="text1">
+                Esta es una tarea de prioridad alta: Implementar sistema de lectura de voz en JARVI. 
+                El proyecto requiere integración con Google AI Studio para resúmenes inteligentes. 
+                Fecha límite: mañana a las 3 de la tarde.
+            </div>
+            <div class="controls">
+                <button class="btn-primary" onclick="testWebSpeech()">🔊 Leer con Web Speech</button>
+                <button class="btn-secondary" onclick="pauseSpeech()">⏸️ Pausar</button>
+                <button class="btn-secondary" onclick="resumeSpeech()">▶️ Reanudar</button>
+                <button class="btn-danger" onclick="stopSpeech()">⏹️ Detener</button>
+            </div>
+            <div class="voice-selector">
+                <select id="voiceSelect">
+                    <option>Cargando voces...</option>
+                </select>
+            </div>
+            <div class="speed-controls">
+                <span>Velocidad:</span>
+                <button class="speed-btn" onclick="setRate(0.5)">0.5x</button>
+                <button class="speed-btn active" onclick="setRate(0.9)">0.9x</button>
+                <button class="speed-btn" onclick="setRate(1)">1x</button>
+                <button class="speed-btn" onclick="setRate(1.25)">1.25x</button>
+                <button class="speed-btn" onclick="setRate(1.5)">1.5x</button>
+            </div>
+        </div>
+        
+        <!-- Test 2: Lectura con Resaltado -->
+        <div class="test-section">
+            <h2>Test 2: Lectura con Resaltado Visual</h2>
+            <div class="test-text" id="text2">
+                <span>Nota</span> <span>de</span> <span>voz</span> <span>del</span> <span>sistema</span> <span>JARVI.</span>
+                <span>Esta</span> <span>funcionalidad</span> <span>permite</span> <span>leer</span> <span>tareas</span> 
+                <span>y</span> <span>notas</span> <span>con</span> <span>sincronización</span> <span>visual.</span>
+                <span>Cada</span> <span>palabra</span> <span>se</span> <span>resalta</span> <span>mientras</span> 
+                <span>se</span> <span>pronuncia.</span>
+            </div>
+            <div class="controls">
+                <button class="btn-primary" onclick="testHighlightReading()">🎯 Leer con Resaltado</button>
+                <button class="btn-danger" onclick="stopHighlight()">⏹️ Detener</button>
+            </div>
+        </div>
+        
+        <!-- Test 3: Resumen con Gemini (Simulado) -->
+        <div class="test-section">
+            <h2>Test 3: Texto Largo con Resumen</h2>
+            <div class="test-text" id="text3">
+                Este es un prompt muy largo que requiere un resumen inteligente. 
+                El proyecto JARVI está implementando un sistema de lectura de voz que utiliza Web Speech API 
+                para síntesis gratuita, Google AI Studio con Gemini para generar resúmenes inteligentes de 
+                textos largos, sincronización visual palabra por palabra, control de velocidad adaptativo, 
+                modo colaborativo con resaltado en tiempo real, y opcionalmente voces premium de Microsoft Edge. 
+                Todo esto sin costo alguno y con una implementación modular que permite escalar según las necesidades.
+            </div>
+            <div class="controls">
+                <button class="btn-primary" onclick="testWithSummary()">📝 Generar Resumen y Leer</button>
+            </div>
+            <div id="summary" style="display:none; margin-top:15px; padding:15px; background:#e6fffa; border-radius:8px;">
+                <strong>Resumen:</strong> <span id="summaryText"></span>
+            </div>
+        </div>
+        
+        <!-- Test 4: Edge TTS (Opcional) -->
+        <div class="test-section">
+            <h2>Test 4: Edge TTS - Voces Premium (Opcional)</h2>
+            <div class="test-text" id="text4">
+                Prueba de voces neurales de Microsoft Edge. Estas voces tienen mayor calidad y naturalidad.
+            </div>
+            <div class="controls">
+                <button class="btn-primary" onclick="testEdgeTTS()">🎤 Probar Edge TTS</button>
+            </div>
+        </div>
+        
+        <div class="status" id="status">
+            Estado: Listo para comenzar las pruebas
+        </div>
+    </div>
+    
+    <script>
+        let currentUtterance = null;
+        let currentRate = 0.9;
+        let voices = [];
+        let selectedVoice = null;
+        let highlightInterval = null;
+        
+        // Cargar voces disponibles
+        function loadVoices() {
+            voices = window.speechSynthesis.getVoices();
+            const select = document.getElementById('voiceSelect');
+            select.innerHTML = '';
+            
+            // Filtrar voces en español
+            const spanishVoices = voices.filter(voice => 
+                voice.lang.includes('es') || voice.lang.includes('ES')
+            );
+            
+            // Agregar voces al selector
+            spanishVoices.forEach((voice, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `${voice.name} (${voice.lang})`;
+                select.appendChild(option);
+                
+                // Seleccionar la primera voz por defecto
+                if (index === 0) {
+                    selectedVoice = voice;
+                }
+            });
+            
+            // Si no hay voces en español, usar todas
+            if (spanishVoices.length === 0) {
+                voices.forEach((voice, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = `${voice.name} (${voice.lang})`;
+                    select.appendChild(option);
+                });
+            }
+        }
+        
+        // Cargar voces cuando estén disponibles
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+        loadVoices();
+        
+        // Cambiar voz seleccionada
+        document.getElementById('voiceSelect').addEventListener('change', (e) => {
+            const spanishVoices = voices.filter(voice => 
+                voice.lang.includes('es') || voice.lang.includes('ES')
+            );
+            selectedVoice = spanishVoices[e.target.value] || voices[e.target.value];
+        });
+        
+        // Test 1: Web Speech API Básico
+        function testWebSpeech() {
+            const text = document.getElementById('text1').textContent;
+            stopSpeech();
+            
+            currentUtterance = new SpeechSynthesisUtterance(text);
+            currentUtterance.lang = 'es-ES';
+            currentUtterance.rate = currentRate;
+            currentUtterance.pitch = 1;
+            currentUtterance.volume = 1;
+            
+            if (selectedVoice) {
+                currentUtterance.voice = selectedVoice;
+            }
+            
+            currentUtterance.onstart = () => {
+                updateStatus('🔊 Reproduciendo con Web Speech API...');
+            };
+            
+            currentUtterance.onend = () => {
+                updateStatus('✅ Lectura completada');
+            };
+            
+            currentUtterance.onerror = (e) => {
+                updateStatus('❌ Error: ' + e.error);
+            };
+            
+            window.speechSynthesis.speak(currentUtterance);
+        }
+        
+        // Test 2: Lectura con resaltado
+        function testHighlightReading() {
+            const container = document.getElementById('text2');
+            const words = container.getElementsByTagName('span');
+            let currentIndex = 0;
+            
+            stopSpeech();
+            stopHighlight();
+            
+            // Limpiar resaltados previos
+            Array.from(words).forEach(word => {
+                word.classList.remove('current-word', 'highlight');
+            });
+            
+            const text = container.textContent;
+            currentUtterance = new SpeechSynthesisUtterance(text);
+            currentUtterance.lang = 'es-ES';
+            currentUtterance.rate = currentRate;
+            
+            if (selectedVoice) {
+                currentUtterance.voice = selectedVoice;
+            }
+            
+            // Simular resaltado palabra por palabra
+            const wordsPerSecond = 150 * currentRate / 60;
+            const intervalTime = 1000 / wordsPerSecond;
+            
+            currentUtterance.onstart = () => {
+                updateStatus('🎯 Leyendo con sincronización visual...');
+                
+                highlightInterval = setInterval(() => {
+                    if (currentIndex > 0 && currentIndex <= words.length) {
+                        words[currentIndex - 1].classList.remove('current-word');
+                        words[currentIndex - 1].classList.add('highlight');
+                    }
+                    
+                    if (currentIndex < words.length) {
+                        words[currentIndex].classList.add('current-word');
+                        currentIndex++;
+                    } else {
+                        stopHighlight();
+                    }
+                }, intervalTime);
+            };
+            
+            currentUtterance.onend = () => {
+                stopHighlight();
+                updateStatus('✅ Lectura con resaltado completada');
+            };
+            
+            window.speechSynthesis.speak(currentUtterance);
+        }
+        
+        function stopHighlight() {
+            if (highlightInterval) {
+                clearInterval(highlightInterval);
+                highlightInterval = null;
+            }
+            
+            // Limpiar todos los resaltados
+            const words = document.getElementById('text2').getElementsByTagName('span');
+            Array.from(words).forEach(word => {
+                word.classList.remove('current-word', 'highlight');
+            });
+        }
+        
+        // Test 3: Con resumen simulado
+        async function testWithSummary() {
+            const fullText = document.getElementById('text3').textContent;
+            
+            // Simular generación de resumen
+            updateStatus('🤖 Generando resumen con IA...');
+            
+            // Simular delay de API
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            const summary = "JARVI implementa lectura de voz gratuita con Web Speech API, resúmenes con Gemini y sincronización visual.";
+            
+            document.getElementById('summary').style.display = 'block';
+            document.getElementById('summaryText').textContent = summary;
+            
+            // Leer primero el resumen
+            currentUtterance = new SpeechSynthesisUtterance(`Resumen del contenido: ${summary}. Ahora procederé con el texto completo.`);
+            currentUtterance.lang = 'es-ES';
+            currentUtterance.rate = currentRate;
+            
+            if (selectedVoice) {
+                currentUtterance.voice = selectedVoice;
+            }
+            
+            currentUtterance.onend = () => {
+                // Después del resumen, leer el texto completo
+                setTimeout(() => {
+                    const fullUtterance = new SpeechSynthesisUtterance(fullText);
+                    fullUtterance.lang = 'es-ES';
+                    fullUtterance.rate = currentRate;
+                    
+                    if (selectedVoice) {
+                        fullUtterance.voice = selectedVoice;
+                    }
+                    
+                    fullUtterance.onend = () => {
+                        updateStatus('✅ Lectura completa con resumen finalizada');
+                    };
+                    
+                    window.speechSynthesis.speak(fullUtterance);
+                }, 1000);
+            };
+            
+            window.speechSynthesis.speak(currentUtterance);
+            updateStatus('📖 Leyendo resumen y texto completo...');
+        }
+        
+        // Test 4: Edge TTS (requiere servidor)
+        async function testEdgeTTS() {
+            try {
+                updateStatus('🎤 Conectando con Edge TTS...');
+                
+                const response = await fetch('http://localhost:3007/api/synthesize', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: document.getElementById('text4').textContent,
+                        voice: 'es-ES-AlvaroNeural',
+                        rate: '+0%'
+                    })
+                });
+                
+                if (response.ok) {
+                    const audioBlob = await response.blob();
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    const audio = new Audio(audioUrl);
+                    audio.play();
+                    updateStatus('✅ Reproduciendo con Edge TTS (voz neural)');
+                } else {
+                    updateStatus('⚠️ Edge TTS no disponible, usando Web Speech API');
+                    const text = document.getElementById('text4').textContent;
+                    currentUtterance = new SpeechSynthesisUtterance(text);
+                    currentUtterance.lang = 'es-ES';
+                    window.speechSynthesis.speak(currentUtterance);
+                }
+            } catch (error) {
+                updateStatus('⚠️ Servidor Edge TTS no disponible, usando Web Speech API');
+                const text = document.getElementById('text4').textContent;
+                currentUtterance = new SpeechSynthesisUtterance(text);
+                currentUtterance.lang = 'es-ES';
+                window.speechSynthesis.speak(currentUtterance);
+            }
+        }
+        
+        // Controles de reproducción
+        function pauseSpeech() {
+            window.speechSynthesis.pause();
+            updateStatus('⏸️ Pausado');
+        }
+        
+        function resumeSpeech() {
+            window.speechSynthesis.resume();
+            updateStatus('▶️ Reanudado');
+        }
+        
+        function stopSpeech() {
+            window.speechSynthesis.cancel();
+            stopHighlight();
+            updateStatus('⏹️ Detenido');
+        }
+        
+        // Control de velocidad
+        function setRate(rate) {
+            currentRate = rate;
+            
+            // Actualizar botones activos
+            document.querySelectorAll('.speed-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            updateStatus(`⚡ Velocidad cambiada a ${rate}x`);
+        }
+        
+        // Actualizar estado
+        function updateStatus(message) {
+            document.getElementById('status').textContent = `Estado: ${message}`;
+        }
+        
+        // Mensaje de bienvenida
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const welcome = new SpeechSynthesisUtterance('Bienvenido al sistema de pruebas de lectura de voz de JARVI');
+                welcome.lang = 'es-ES';
+                welcome.rate = 0.9;
+                window.speechSynthesis.speak(welcome);
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
